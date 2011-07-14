@@ -15,51 +15,6 @@ import java.util.Iterator;
  * <tt>C:/Users/think/Desktop/DB´ó×÷Òµ/parser.flex</tt>
  */
 
-class Lexer{
-	Yylex yylex;
-	ArrayList<java_cup.runtime.Symbol> list=new ArrayList<java_cup.runtime.Symbol>();
-	private boolean haserror;
-	
-	private Iterator it;
-	public Lexer(InputStream input) throws IOException{
-		it=list.iterator();
-		yylex=new Yylex(input);
-		this.haserror=false;
-		while(true){
-			java_cup.runtime.Symbol symbol=yylex.nextToken();
-			if(symbol.sym==sym.ERROR)
-			{
-				report_error(symbol);
-			}
-			else if(symbol.sym==sym.EOF)
-			{
-				list.add(symbol);
-				break;
-			}
-			else 
-				list.add(symbol);
-		}
-	}
-	public java_cup.runtime.Symbol nextToken()
-	{
-		return (java_cup.runtime.Symbol)it.next();
-	}
-	public boolean hasNext()
-	{
-		if(it.hasNext()&&((java_cup.runtime.Symbol)it.next()).sym!=sym.EOF)
-			return true;
-		return false;
-	}
-	public void report_error(java_cup.runtime.Symbol symbol  )
-	{
-		this.haserror=true;
-		System.out.print("lexical error @"+symbol.left+":"+symbol.value);
-	}
-	public boolean hasError()
-	{
-		return this.haserror;
-	}
-}
 
 class Yylex   {
 
@@ -914,7 +869,7 @@ private java_cup.runtime.Symbol nextToken(int kind){
           }
         case 118: break;
         case 59: 
-          { return nextToken(sym.FLOAT);
+          { return nextToken(sym.FLOAT,new Double(yytext()));
           }
         case 119: break;
         case 74: 

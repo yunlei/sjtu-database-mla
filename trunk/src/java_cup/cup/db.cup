@@ -1,0 +1,395 @@
+package Parse;
+import Absyn.*;
+import java.util.ArrayList;
+
+import Symbol.Symbol;
+action code {: static Symbol.Symbol sym(String s) {
+	         return Symbol.Symbol.symbol(s);
+	        }
+	    :};
+parser code  {: 
+  public Absyn.Exp parseResult;
+  Lexer lexer;
+  
+  public void syntax_error(java_cup.runtime.Symbol current) {
+   report_error("Syntax error (" + current.sym + ")", current);
+  }
+
+  ArrayList<ErrorMsg.ErrorMsg> errorMsgList=new ArrayList<ErrorMsg.ErrorMsg>();
+	ErrorMsg.ErrorMsg errorMsg=new ErrorMsg.ErrorMsg();
+  public void report_error(String message, 
+			   java_cup.runtime.Symbol info) {
+      errorMsgList.add(new ErrorMsg.ErrorMsg(info.left, message));
+  }
+
+  public parser(Lexer l, ErrorMsg.ErrorMsg err) {
+    this();
+    errorMsg=err;
+    lexer=l;
+  }
+:};
+scan with {: return lexer.nextToken(); :};	
+
+terminal String NAME,STRING;
+terminal Integer INTVALUE;
+terminal Double FLOATVALUE;
+terminal ALTER,ADD,ALL,AND,ANY,AS,ASC,BY,CREATE,DELETE,DESC,DROP,DATABASE,
+		ESCAPE,EXISTS,FROM,INDEX,INSERT,INTO,KEY,LIKE,NOT,NULL,ON,OR,ORDER,
+		PRIMARY,SET,SELECT,TABLE,UPDATE,VIEW,VALUES,WHERE,
+		AVG,COUNT,MIN,MAX,SUM,INT, FLOAT,BOOLEAN,TRUE,FALSE,
+		LPAREN,RPAREN,
+		AUTO,CHECK,DOT, STRINGVALUE,  
+		PLUS,TIMES,MINUS,DIVIDE,MOD,LT,GT,LE,GE,EQ,NEQ,UNION,SEMICOLON,USE,COMMA,DEFAULT,
+		CHAR ,INCREMENT,DISTINCT,GROUP,HAVING,IN;
+		
+
+non terminal Exp sql;
+non terminal Exp database;
+non terminal CreateExp create; 
+non terminal SelectExp select;
+non terminal InsertExp insert;
+non terminal DeleteExp delete;
+non terminal UpdateExp update;
+non terminal DropExp drop;
+non terminal AlterExp alter;
+non terminal CreateElementList create_element_list;
+non terminal CreateElement create_element;
+non terminal ColumnDefinition column_definition;
+non terminal Symbol                     null_or_not; 
+non terminal Symbol                     primary_key;
+non terminal BoolExp                    bool_expr;
+non terminal Symbol                     distinct_or_not;
+non terminal SelectExpr                 select_expr;
+non terminal AsOrNot as_or_not;
+non terminal FromClause                 from_clause;
+non terminal TableRef table_ref;
+non terminal TableRefList t_r_l;
+non terminal WhereClause where_clause;
+non terminal ColName col_name;
+non terminal GroupClause group_clause;
+non terminal HavingClause having_clause;
+non terminal OrderClause order_clause;
+non terminal ConstValue const_value;
+non terminal NameList namelist;
+non terminal Assignment assignment;
+non terminal AssignList assignlist;
+non terminal Value value; 
+non terminal Symbol func;
+non terminal Symbol cop;
+non terminal ConstValue                 default_value;
+non terminal DataType data_type;
+non terminal Symbol auto_increasement;
+non terminal TableRefList table_ref_list;
+non terminal OrderList order_list;
+non terminal ConstValueList const_value_list;
+non terminal Symbol asc_or_desc;
+/* Precedences */
+precedence left OR;
+precedence left AND, UNION;
+precedence nonassoc LT, LE, GT, GE, EQ, NEQ;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE, MOD;
+precedence left DOT;
+
+
+start with database;
+
+database ::=sql:s
+			{:RESULT=s;:}
+			;
+sql		::=create:c
+			{:RESULT=c;:}
+			|select:s
+			{:RESULT=s;:}
+			|insert:i
+			{:RESULT=i;:}
+			|delete:d
+			{:RESULT=d;:}
+			|update:u
+			{:RESULT=u;:}
+			|drop:dr
+			{:RESULT=dr;:}
+			|alter:a
+			{:RESULT=a;:}
+			;
+create	::=CREATE:C TABLE:T NAME:N LPAREN:LP create_element_list:c RPAREN:RP SEMICOLON:S
+			{:RESULT=new CreateTableExp(Cleft,new Symbol(N),c);:}
+			|CREATE:C DATABASE:D NAME:N SEMICOLON:S
+			{:RESULT=new CreateDatabaseExp(Cleft,new Symbol(N));:}
+			|USE:U NAME:N SEMICOLON:S
+			{:RESULT=new CreateDatabaseExp(Uleft,new Symbol(N));:}
+			|CREATE:C INDEX:I NAME:N1 ON:O NAME:N2 LPAREN:L NAME:N3 RPAREN:R
+			{:RESULT=new CreateIndexExp(Cleft,new Symbol(N1),new Symbol(N2),new Symbol(N3),false);:}
+			|CREATE:C NAME:N AS:A select:s
+			{:RESULT=new CreateViewExp(Cleft,new Symbol(N),s);:}
+			;
+create_element_list::=create_element:c
+						{:RESULT=new CreateElementList( c,null);:}
+						|create_element:c1 COMMA:C create_element_list:c
+						{:RESULT=new CreateElementList( c1,c);:}
+						;
+create_element::=column_definition:c
+				{:RESULT=c;:}
+				;
+column_definition::=NAME:N data_type:dt null_or_not:non default_value:dv auto_increasement:ai primary_key:pk
+			{:RESULT=new ColumnDefinition(Nleft,new Symbol(N),dt,pk,non,ai,dv); :}
+			| NAME:i data_type:dty CHECK LPAREN bool_expr:b RPAREN
+			{: RESULT = new ColumnDefinition(ileft, new Symbol(i), dty, b); :}
+			;
+default_value::=
+				  {: RESULT = null; :}
+				 |DEFAULT const_value:cv
+				  {: RESULT = cv; :}
+				 ;		
+data_type::=INT:I
+			{:RESULT=new NameTy( new Symbol("int"));:}
+			|FLOAT:F
+			{:RESULT=new NameTy( new Symbol("float"));:}
+			|CHAR:C LPAREN:L INTVALUE:I RPAREN:R
+			{:RESULT=new ArrayTy( new Symbol("char"),(Integer)I);:}
+			|BOOLEAN:B
+			{:RESULT=new NameTy( new Symbol("boolean"));:}
+			;
+null_or_not ::=
+				{:RESULT=null;:}
+				| NULL
+				 {: RESULT = new Symbol("NULL"); :}
+				| NOT NULL
+				 {: RESULT = new Symbol("NOTNULL"); :}
+				; 
+auto_increasement::=
+					{:RESULT=null;:}
+					| AUTO INCREMENT
+					{: RESULT = new Symbol("AUTOINCREMENT"); :}
+					;
+primary_key ::=
+			{:RESULT=null;:}
+			|PRIMARY KEY
+			{:RESULT=new Symbol("PRIMARYKEY");:}
+			;
+select ::=  SELECT distinct_or_not:d select_expr:s 
+			from_clause:f
+			where_clause:w
+			group_clause:g
+			having_clause:h
+			order_clause:o
+			{: RESULT = new SelectExp(d, s, f, w, g, h, o); :}
+			; 
+distinct_or_not ::=
+					{: RESULT = null; :}
+				   | DISTINCT
+				    {: RESULT = new Symbol("DISTINCT"); :}
+				   ;			
+as_or_not ::= 
+			  {: RESULT = null; :}
+			 | AS NAME:i
+			  {: RESULT = new AsOrNot(new Symbol(i)); :} 
+			 ;	
+table_ref::=NAME:N
+			{:RESULT=new TableRef(new Symbol(N),null,null);:}
+			|NAME:N1 AS NAME:N2
+			{:RESULT=new TableRef(new Symbol(N1),new Symbol(N2),null);:}
+			|LPAREN select:s RPAREN AS NAME:N
+			{:RESULT=new TableRef(null,new Symbol(N),s);:}
+			;
+t_r_l::=table_ref:t
+		{:RESULT=new TableRefList(t,null);:}
+		|table_ref:t COMMA table_ref_list:trl
+		{:RESULT=new TableRefList(t,trl);:}
+		;
+from_clause::=
+		{:RESULT=null;:}
+		| FROM table_ref_list:trl
+		{:RESULT=new FromClause(trl);:}
+		;
+where_clause::= 
+				{:RESULT=null;:}
+				|WHERE bool_expr:b
+				{:RESULT=new WhereClause(b);:}
+				;
+
+col_name::=NAME:N
+			{:RESULT=new ColName(null,new Symbol(N));:}
+			|NAME:N1 DOT NAME:N2
+			{:RESULT=new ColName(new Symbol(N1),new Symbol(N2));:}
+			;
+group_clause::=
+			{:RESULT=null;:}
+			| GROUP BY col_name:c
+			{:RESULT=new GroupClause(c);:}
+			;
+having_clause ::= 
+				  {: RESULT = null; :}
+				 | HAVING bool_expr:be
+				  {: RESULT = new HavingClause(be); :}
+				 ;
+order_clause ::= 
+				 {: RESULT = null; :}
+				| ORDER BY order_list:ol
+				 {: RESULT = new OrderClause(ol); :}
+				;
+order_list::=col_name:n asc_or_desc:a
+			{:RESULT=new OrderList(n,a,null);:}
+			|col_name:n asc_or_desc:a order_list:o
+			{:RESULT=new OrderList(n,a,o);:}
+			;
+asc_or_desc::=
+			{:RESULT=new Symbol("ASC");:}
+			|ASC
+			{:RESULT=new Symbol("ASC");:}
+			|DESC
+			{:RESULT=new Symbol("DESC");:}
+			;
+const_value::=INTVALUE:i
+			{:RESULT=new ConstValueInt(ileft,i.intValue());:}
+			|STRING:s
+			{:RESULT=new ConstValueString(sleft,s);:}
+			|TRUE:t
+			{:RESULT=new ConstValueBoolean(tleft,true);:}
+			|FALSE:t
+			{:RESULT=new ConstValueBoolean(tleft,false);:}
+			|FLOATVALUE:f
+			{:RESULT=new ConstValueFloat(fleft,f);:}
+			|NULL:n
+			{:RESULT=new ConstValueNull();:}
+			;
+insert::=INSERT:i INTO NAME:N VALUES LPAREN const_value_list:cl RPAREN SEMICOLON
+		{: RESULT=new InsertExp(ileft,new Symbol(N),cl);:}
+		|INSERT:i INTO NAME:N VALUES LPAREN select:s RPAREN SEMICOLON
+		{: RESULT=new InsertExp(ileft,new Symbol(N),s);:}
+		|INSERT:i INTO NAME:N namelist:nl VALUES LPAREN select:s RPAREN SEMICOLON
+		{: RESULT=new InsertExp(ileft,new Symbol(N),nl,s);:}
+		|INSERT:i INTO NAME:N namelist:nl VALUES LPAREN const_value_list:cl RPAREN SEMICOLON
+		{: RESULT=new InsertExp(ileft,new Symbol(N),nl,cl);:}
+		;
+const_value_list::=const_value:c
+				{:RESULT=new ConstValueList(c,null);:}
+				|const_value:c const_value_list:cl
+				{:RESULT=new ConstValueList(c,cl);:}
+				;
+namelist::=NAME:N
+		{:RESULT=new NameList(Nleft,new Symbol(N),null);:}
+		|NAME:N namelist:nl
+		{:RESULT=new NameList(Nleft,new Symbol(N),nl);:}
+		;
+				
+delete::=DELETE:D FROM NAME:N  SEMICOLON
+		{:RESULT=new DeleteExp(Dleft,new Symbol(N),null);:}
+		|DELETE:D FROM NAME:N 	WHERE bool_expr SEMICOLON
+		{:RESULT=new DeleteExp(Dleft,new Symbol(N),null);:}
+		;
+
+assignment::=NAME:N EQ value:v
+			{:RESULT=new Assignment(Nleft,new Symbol(N),v);:}
+			;
+assignlist::=assignment:a
+			{:RESULT=new AssignList(a,null);:}
+			|assignment:a assignlist:al
+			{:RESULT=new AssignList(a,al);:}	
+			;
+update::=UPDATE:U NAME:N SET assignlist:a WHERE bool_expr:b SEMICOLON
+		{:RESULT=new UpdateExp(Uleft,new Symbol(N),a,b);:}
+		|UPDATE:U NAME:N SET assignlist:a SEMICOLON
+		{:RESULT=new UpdateExp(Uleft,new Symbol(N),a,null);:}
+		;
+drop::=DROP:D TABLE NAME:N SEMICOLON 
+		{:new DropTableExp(Dleft,new Symbol(N));:}
+		|DROP:D VIEW NAME:N SEMICOLON 
+		{:new DropViewExp(Dleft,new Symbol(N));:}
+		|DROP:D INDEX NAME:N1 ON NAME:N2 SEMICOLON 
+		{:new DropIndexExp(Dleft,new Symbol(N2),new Symbol(N1));:}
+		|DROP:D DATABASE NAME:N SEMICOLON 
+		{:new DropDatabaseExp(Dleft,new Symbol(N));:}
+		;		
+alter::=ALTER:A TABLE NAME:N ADD NAME:N1 data_type:dt	
+		{:RESULT=new AlterAddExp(Aleft,new Symbol(N),new Symbol(N1),dt);:}
+		|ALTER:A TABLE NAME:N DROP NAME:N1
+		{:RESULT=new AlterDropExp(Aleft,new Symbol(N),new Symbol(N1));:}
+		;
+func::=AVG
+		{:RESULT=new Symbol("AVG");:}
+		|MIN
+		{:RESULT=new Symbol("MIN");:}
+		|MAX
+		{:RESULT=new Symbol("MAX");:}
+		|COUNT
+		{:RESULT=new Symbol("COUNT");:}
+		|SUM
+		{:RESULT=new Symbol("SUM");:}
+		;
+value::=LPAREN value:v RPAREN
+		{:RESULT=v;:}
+		|col_name:c
+		{:RESULT=new ColValue(c);:}
+		|const_value:v
+		{:RESULT=v;:}
+		|value:v1 PLUS value:v2
+		{:RESULT=new OperValue(new Symbol("PLUS"),v1,v2);:}
+		|value:v1 MINUS value:v2
+		{:RESULT=new OperValue(new Symbol("MINUS"),v1,v2);:}
+		|value:v1 TIMES value:v2
+		{:RESULT=new OperValue(new Symbol("TIMES"),v1,v2);:}
+		|value:v1 DIVIDE value:v2
+		{:RESULT=new OperValue(new Symbol("DIVIDE"),v1,v2);:}
+		|value:v1 MOD value:v2
+		{:RESULT=new OperValue(new Symbol("MOD"),v1,v2);:}
+		|LPAREN select:s RPAREN
+		{:RESULT=new SubqueryValue(s);:}
+		|func:f LPAREN col_name:c RPAREN
+		{:RESULT=new FuncValue(f,c);:}
+		;
+cop ::=   LT 
+		 {: RESULT = new Symbol("LT"); :}
+		| GT 
+		 {: RESULT = new Symbol("GT"); :}
+		| EQ 
+		 {: RESULT = new Symbol("EQ"); :}
+		| LE 
+		 {: RESULT = new Symbol("LE"); :}
+		| GE 
+		 {: RESULT = new Symbol("GE"); :}
+		| NEQ
+		 {: RESULT = new Symbol("NEQ"); :}
+		;
+bool_expr::=value:v1 cop:c value:v2
+			{:new CompBoolExp(v1,c,v2);:}
+			|bool_expr:b1 AND bool_expr:b2
+			{:RESULT=new BoolAndExp(b1,b2);:}
+			|bool_expr:b1 OR bool_expr:b2
+			{:RESULT=new BoolOrExp(b1,b2);:}
+			|EXISTS LPAREN select:s RPAREN
+			{:RESULT=new BoolExsitExp(true,s);:}
+			|NOT EXISTS LPAREN select:s RPAREN
+			{:RESULT=new BoolExsitExp(false,s);:}
+			|value:v IN LPAREN select:s RPAREN
+			{:RESULT= new InExp(true,v,s);:}
+			|value:v NOT IN LPAREN select:s RPAREN
+			{:RESULT= new InExp(false,v,s);:}
+			|value:v cop:c ANY  LPAREN select:s RPAREN
+			{:RESULT= new AnyExp(v,c,s);:}
+			|value:v cop:c ALL  LPAREN select:s RPAREN
+			{:RESULT= new AllExp(v,c,s);:}
+			|LPAREN bool_expr:b RPAREN
+			{:RESULT=b;:}
+			|value:v LIKE STRING:S
+			{:new LikeEscapeExp(v,true,false,S,null);:}
+			|value:v LIKE STRING:S ESCAPE STRING:S2
+			{:new LikeEscapeExp(v,true,true,S,S2);:}
+			||value:v NOT LIKE STRING:S
+			{:new LikeEscapeExp(v,false,false,S,null);:}
+			;
+select_expr::=TIMES:T
+			{:RESULT=new SelectExpr(new ColValue(new ColName(null, new Symbol("*"))),null,null);:}
+			|value:v NAME:N 
+			{:RESULT=new SelectExpr(v,new AsOrNot(new Symbol(N)),null);:}
+			|value:v NAME:N COMMA select_expr:s
+			{:RESULT=new SelectExpr(v,new AsOrNot(new Symbol(N)),s);:}
+			|value:v as_or_not:as 
+			{:RESULT=new SelectExpr(v,as,null);:}
+			|value:v as_or_not:as  COMMA select_expr:s
+			{:RESULT=new SelectExpr(v,as,s);:}
+			;
+select ::= 	  LPAREN select RPAREN UNION LPAREN select RPAREN
+			| LPAREN select RPAREN UNION ALL LPAREN select RPAREN
+			| LPAREN select RPAREN UNION LPAREN select RPAREN UNION LPAREN select RPAREN
+			;			

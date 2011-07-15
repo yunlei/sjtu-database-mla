@@ -1,8 +1,8 @@
 package Absyn;
 
 public class BoolOrExp extends BoolExp{
-	BoolExp exp1;
-	BoolExp exp2;
+	public BoolExp exp1;
+	public BoolExp exp2;
 	public BoolOrExp(BoolExp e1,BoolExp e2)
 	{
 		exp1=e1;

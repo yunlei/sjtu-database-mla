@@ -3,8 +3,8 @@ package Absyn;
 import Symbol.Symbol;
 
 public class ColName {
-	Symbol table;
-	Symbol col;
+	public Symbol table;
+	public Symbol col;
 	public ColName(Symbol t,Symbol c)
 	{
 		table=t;

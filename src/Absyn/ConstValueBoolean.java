@@ -1,7 +1,7 @@
 package Absyn;
 
 public class ConstValueBoolean extends ConstValue{
-	boolean flag;
+	public boolean flag;
 	public ConstValueBoolean(int p,boolean f)
 	{
 		this.pos=p;

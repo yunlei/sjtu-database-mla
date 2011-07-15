@@ -1,8 +1,8 @@
 package Absyn;
 
 public class AssignList {
-	Assignment first;
-	AssignList next;
+	public Assignment first;
+	public AssignList next;
 	public AssignList(Assignment f,AssignList n)
 	{
 		first=f;

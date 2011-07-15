@@ -3,10 +3,10 @@ package Absyn;
 import Symbol.Symbol;
 
 public class InsertExp extends Exp{
-	Symbol name;
-	ConstValueList constvalue;
-	SelectExp select;
-	NameList namelist;
+	public Symbol name;
+	public ConstValueList constvalue;
+	public SelectExp select;
+	public NameList namelist;
 	public InsertExp(int p,Symbol n,ConstValueList c)
 	{
 		this.pos=p;

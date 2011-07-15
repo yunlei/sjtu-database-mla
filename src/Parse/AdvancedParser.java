@@ -6,6 +6,12 @@ import ErrorMsg.ErrorMsg;
 
 public class AdvancedParser extends parser{
 
+	SymbolFactory sf;
+	public void setSymbolFactory(SymbolFactory sf)
+	{
+		this.sf=sf;
+		 
+	}
 	public AdvancedParser() {
 		super();
 		// TODO Auto-generated constructor stub

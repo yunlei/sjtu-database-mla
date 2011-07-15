@@ -4,8 +4,8 @@ import Symbol.Symbol;
 
 public class NameList {
 	int pos;
-	Symbol name;
-	NameList next;
+	public Symbol name;
+	public NameList next;
 	public NameList(int p, Symbol s,NameList n)
 	{
 		pos=p;

@@ -10,5 +10,11 @@ public class CreateTableExp extends CreateExp{
 		this.name = name;
 		this.element = element;
 	}
+	public Symbol getName() {
+		return name;
+	}
+	public CreateElementList getElement() {
+		return element;
+	}
 	
 }

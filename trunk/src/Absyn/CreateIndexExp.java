@@ -21,5 +21,17 @@ public class CreateIndexExp extends CreateExp {
 		this.col_name = col_name;
 		this.unique = unique;
 	}
+	public Symbol getIndex_name() {
+		return index_name;
+	}
+	public Symbol getTable_name() {
+		return table_name;
+	}
+	public Symbol getCol_name() {
+		return col_name;
+	}
+	public boolean isUnique() {
+		return unique;
+	}
 	
 }

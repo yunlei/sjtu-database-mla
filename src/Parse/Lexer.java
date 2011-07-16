@@ -10,9 +10,9 @@ public class Lexer implements java_cup.runtime.Scanner{
 	ArrayList<java_cup.runtime.Symbol> list=new ArrayList<java_cup.runtime.Symbol>();
 	private boolean haserror;
 	
-	private Iterator it;
+	private int ptr;
 	public Lexer(InputStream input) throws IOException{
-		it=list.iterator();
+		 
 		yylex=new Yylex(input);
 		this.haserror=false;
 		while(true){
@@ -32,11 +32,14 @@ public class Lexer implements java_cup.runtime.Scanner{
 	}
 	public java_cup.runtime.Symbol nextToken()
 	{
-		return (java_cup.runtime.Symbol)it.next();
+		if(hasNext())
+			return list.get(ptr++); 
+		else 
+			return new java_cup.runtime.Symbol(sym.EOF);
 	}
 	public boolean hasNext()
 	{
-		if(it.hasNext()&&((java_cup.runtime.Symbol)it.next()).sym!=sym.EOF)
+		if(ptr<list.size()&&list.get(ptr).sym!=sym.EOF)
 			return true;
 		return false;
 	}

@@ -31,5 +31,10 @@ public class AdvancedParser extends parser{
 		super(s);
 		// TODO Auto-generated constructor stub
 	}
+	public AdvancedParser(Lexer l,SymbolFactory sf)
+	{
+		lexer=l;
+		this.symbolFactory=sf;
+	}
 	
 }

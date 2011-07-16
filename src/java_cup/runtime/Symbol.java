@@ -103,7 +103,7 @@ public class Symbol {
   /*****************************
     Printing this token out. (Override for pretty-print).
     ****************************/
-  public String toString() { return "#"+sym+":"+value; }
+  public String toString() { return "#"+sym+":"+value+" @" +left+"->"+right; }
 }
 
 

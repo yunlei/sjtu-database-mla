@@ -38,7 +38,7 @@ terminal ALTER,ADD,ALL,AND,ANY,AS,ASC,BY,CREATE,DELETE,DESC,DROP,DATABASE,
 		PRIMARY,SET,SELECT,TABLE,UPDATE,VIEW,VALUES,WHERE,
 		AVG,COUNT,MIN,MAX,SUM,INT, FLOAT,BOOLEAN,TRUE,FALSE,
 		LPAREN,RPAREN,
-		AUTO,CHECK,DOT, STRINGVALUE,  
+		AUTO,CHECK,DOT,  
 		PLUS,TIMES,MINUS,DIVIDE,MOD,LT,GT,LE,GE,EQ,NEQ,UNION,SEMICOLON,USE,COMMA,DEFAULT,
 		CHAR ,INCREMENT,DISTINCT,GROUP,HAVING,IN;
 		
@@ -63,7 +63,6 @@ non terminal SelectExpr                 select_expr;
 non terminal AsOrNot as_or_not;
 non terminal FromClause                 from_clause;
 non terminal TableRef table_ref;
-non terminal TableRefList t_r_l;
 non terminal WhereClause where_clause;
 non terminal ColName col_name;
 non terminal GroupClause group_clause;
@@ -192,7 +191,7 @@ table_ref::=NAME:N
 			|LPAREN select:s RPAREN AS NAME:N
 			{:RESULT=new TableRef(null,new Symbol(N),s);:}
 			;
-t_r_l::=table_ref:t
+table_ref_list::=table_ref:t
 		{:RESULT=new TableRefList(t,null);:}
 		|table_ref:t COMMA table_ref_list:trl
 		{:RESULT=new TableRefList(t,trl);:}

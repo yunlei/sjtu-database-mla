@@ -3,6 +3,8 @@ package java_cup.runtime;
 import java_cup.runtime.Symbol;
 import java.util.Stack;
 
+import Parse.sym;
+
 /** This class implements a skeleton table driven LR parser.  In general,
  *  LR parsers are a form of bottom up shift-reduce parsers.  Shift-reduce
  *  parsers act by shifting input onto a parse stack until the Symbols 
@@ -131,7 +133,7 @@ public abstract class lr_parser {
   }
 
   //yunleisjtu code
-  SymbolFactory symbolFactory;
+  protected SymbolFactory symbolFactory;
   public lr_parser(Scanner s,SymbolFactory sf) {
 	    this(); /* in case default constructor someday does something */
 	    this.symbolFactory=sf;
@@ -558,7 +560,7 @@ public abstract class lr_parser {
 	  /* Check current token for freshness. */
 	  if (cur_token.used_by_parser)
 	    throw new Error("Symbol recycling detected (fix your scanner).");
-
+	  
 	  /* current state is always on the top of the stack */
 
 	  /* look up action out of the current state with the current input */
@@ -749,7 +751,10 @@ public abstract class lr_parser {
 	  /* Check current token for freshness. */
 	  if (cur_token.used_by_parser)
 	    throw new Error("Symbol recycling detected (fix your scanner).");
-
+	  if(cur_token.sym==sym.EOF)
+	  {  done_parsing();
+	  	break;
+	  }
 	  /* current state is always on the top of the stack */
 	  //debug_stack();
 

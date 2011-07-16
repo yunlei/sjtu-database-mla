@@ -2,7 +2,7 @@ package Parse;
 import Symbol.Symbol;
 import Absyn.*;
 public class print {
-	public  void printExp(Exp e)
+	public  static void printExp(Exp e)
 	{
 		if(e instanceof CreateExp)
 			printCreate((CreateExp)e);
@@ -21,7 +21,7 @@ public class print {
 		if(e instanceof UpdateExp)
 			printUpdateExp((UpdateExp)e);
 	}
-	private void printUpdateExp(UpdateExp e) {
+	private static void printUpdateExp(UpdateExp e) {
 		// TODO Auto-generated method stub
 		print("update "+e.name+" set ");
 		printAssignList(e.assign);
@@ -29,7 +29,7 @@ public class print {
 		printBoolExp(e.bool);
 		print("\n");
 	}
-	private void printAssignList(AssignList al) {
+	private static void printAssignList(AssignList al) {
 		// TODO Auto-generated method stub
 		if(al==null)
 			return;
@@ -38,7 +38,7 @@ public class print {
 		printValue(a.value);
 		printAssignList(al.next);
 	}
-	private void printInsertExp(InsertExp e) {
+	private static void printInsertExp(InsertExp e) {
 		// TODO Auto-generated method stub
 		print("insert into "+e.name);
 		if(e.namelist!=null)
@@ -49,21 +49,21 @@ public class print {
 		else if(e.select!=null)
 			printSelectExp(e.select); 
 	} 
-	private void printConstValueList(ConstValueList cv) {
+	private static void printConstValueList(ConstValueList cv) {
 		// TODO Auto-generated method stub
 		if(cv==null)
 			return;
 		printConstValue(cv.value);
 		printConstValueList(cv.next);
 	}
-	private void printNameList(NameList nl) {
+	private static void printNameList(NameList nl) {
 		// TODO Auto-generated method stub
 		if(nl==null)
 			return;
 		print(nl.name+" ");
 		printNameList(nl.next);
 	}
-	private void printDropExp(DropExp e) {
+	private static void printDropExp(DropExp e) {
 		// TODO Auto-generated method stub
 		print("drop ");
 		if(e instanceof DropDatabaseExp)
@@ -87,7 +87,7 @@ public class print {
 			print(" view "+d.name);
 		}
 	}
-	private void printDeleteExp(DeleteExp e) {
+	private static void printDeleteExp(DeleteExp e) {
 		// TODO Auto-generated method stub
 		print("delete "+e.name  );
 		if(e.exp!=null){
@@ -95,7 +95,7 @@ public class print {
 			printBoolExp(e.exp);
 		}
 	}
-	private void printAlterExp(AlterExp e) {
+	private static void printAlterExp(AlterExp e) {
 		// TODO Auto-generated method stub
 		if( e instanceof AlterAddExp){
 			AlterAddExp add=(AlterAddExp)e;
@@ -110,7 +110,7 @@ public class print {
 		}
 		
 	}
-	public  void printSelectExp(SelectExp e) {
+	public  static void printSelectExp(SelectExp e) {
 		// TODO Auto-generated method stub
 		 print("select "+e.distinct_or_not +" ");
 		 printSelectExpr(e.selectexpr);
@@ -120,17 +120,17 @@ public class print {
 			 printWhereExp(e.whereclause);
 		 }
 	} 
-	private void printWhereExp(WhereClause w) {
+	private static void printWhereExp(WhereClause w) {
 		// TODO Auto-generated method stub
 		 print("where ");
 		 printBoolExp(w.boolexp);
 	}
-	private void printFrom(FromClause f) {
+	private static void printFrom(FromClause f) {
 		// TODO Auto-generated method stub
 		print(" from ");
 		printTableRefList(f.tablereflist); 
 	}
-	private void printTableRefList(TableRefList t) {
+	private static void printTableRefList(TableRefList t) {
 		// TODO Auto-generated method stub
 		TableRef tr=t.tableref;
 		if(tr.asname==null &&tr.subquery==null)
@@ -146,7 +146,7 @@ public class print {
 			print(""+tr.asname);
 		}
 	}
-	private void printSelectExpr(SelectExpr s) {
+	private static void printSelectExpr(SelectExpr s) {
 		// TODO Auto-generated method stub
 		if(s==null)
 			return;
@@ -158,7 +158,7 @@ public class print {
 		printSelectExpr(s.next);
 		
 	}
-	public void printCreate(CreateExp c)
+	public static void printCreate(CreateExp c)
 	{
 		if (c instanceof CreateTableExp)
 		{
@@ -183,7 +183,7 @@ public class print {
 			print("create database "+ct.name+"\n");
 		}
 	}
-	public  void printElementList(CreateElementList element) {
+	public  static void printElementList(CreateElementList element) {
 		// TODO Auto-generated method stub
 		if(element==null)
 			return;
@@ -192,7 +192,7 @@ public class print {
 		 printElementList(element.next);
 		 
 	}
-	private void printElement(CreateElement c) {
+	private static void printElement(CreateElement c) {
 		// TODO Auto-generated method stub
 		if(c instanceof ColumnDefinition)
 		{
@@ -212,7 +212,7 @@ public class print {
 			}
 		}
 	}
-	private void printDataType(DataType t) {
+	private static void printDataType(DataType t) {
 		// TODO Auto-generated method stub
 		 if(t instanceof NameTy){
 			 print(""+((NameTy)t).ty);
@@ -222,7 +222,7 @@ public class print {
 			 print(at.ty+"("+at.length+")");
 		 }
 	}
-	private void printBoolExp(BoolExp e) {
+	private static void printBoolExp(BoolExp e) {
 		// TODO Auto-generated method stub
 		if(e ==null )
 			return;
@@ -295,7 +295,7 @@ public class print {
 			}
 		}
 	}
-	private void printCmp(Symbol comp) {
+	private static void printCmp(Symbol comp) {
 		// TODO Auto-generated method stub
 		 if(comp.toString().equals("LT"))
 			 print("<");
@@ -310,7 +310,7 @@ public class print {
 		 if(comp.toString().equals("NEQ"))
 			 print("<>");
 	}
-	private void printValue(Value v) {
+	private static void printValue(Value v) {
 		// TODO Auto-generated method stub
 		if(v instanceof ColValue)
 		{
@@ -334,26 +334,26 @@ public class print {
 			printSelectExp((SelectExp)(((SubqueryValue)v).select));
 		}
 	} 
-	private void printOperValue(OperValue v) {
+	private static void printOperValue(OperValue v) {
 		// TODO Auto-generated method stub
 		print("(");
 		printValue(v.v1);
 		print(v.op+"");
 		printValue(v.v2);
 	} 
-	private void printFuncValue(FuncValue v) {
+	private static void printFuncValue(FuncValue v) {
 		// TODO Auto-generated method stub
 		print(v.functy+"(");
 		printColName(v.colname);
 		print(")");		
 	}
-	private void printColName(ColName name) {
+	private static void printColName(ColName name) {
 		// TODO Auto-generated method stub
 		if(name.table!=null)
 			print(name.table+".");
 		print(name.col+"");
 	}
-	private void printConstValue(ConstValue cv) {
+	private static void printConstValue(ConstValue cv) {
 		// TODO Auto-generated method stub
 		 if(cv instanceof ConstValueBoolean)
 		 {
@@ -382,7 +382,7 @@ public class print {
 
 		 
 	}
-	public void print(String s)
+	public static void print(String s)
 	{
 		System.out.print(s);
 	}

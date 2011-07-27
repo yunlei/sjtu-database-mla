@@ -9,10 +9,11 @@ import java_cup.runtime.SymbolFactory;
 
 import ErrorMsg.ErrorMsg;
 import Parse.*;
+ 
 public class database {
 	public static  void main(String []args) throws IOException
 	{
-		FileInputStream input=new FileInputStream(getFile.getFile("g:/", "txt"));
+		FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\øŒ≥Ã…Ëº∆\\testcase", "txt"));
 		Lexer lexer=new Lexer(input);
 //		while(lexer.hasNext())
 //		{

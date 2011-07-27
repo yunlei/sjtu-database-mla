@@ -4,6 +4,8 @@ import Absyn.*;
 public class print {
 	public  static void printExp(Exp e)
 	{
+		if(e instanceof SQLList)
+			printSQLList((SQLList)e);
 		if(e instanceof CreateExp)
 			printCreate((CreateExp)e);
 		if(e instanceof SelectExp)
@@ -20,6 +22,15 @@ public class print {
 			printInsertExp((InsertExp)e);
 		if(e instanceof UpdateExp)
 			printUpdateExp((UpdateExp)e);
+	}
+	private static void printSQLList(SQLList e) {
+		// TODO Auto-generated method stub
+		if(e ==null )
+			return ;
+		print("{\n");
+		printExp(e.first);
+		print("\n} \n");
+		printExp(e.next); 
 	}
 	private static void printUpdateExp(UpdateExp e) {
 		// TODO Auto-generated method stub

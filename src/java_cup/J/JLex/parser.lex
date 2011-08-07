@@ -3,7 +3,7 @@ import ErrorMsg.ErrorMsg;
 
 %%
 
-%implements Lexer
+ 
 %function nextToken
 %type java_cup.runtime.Symbol
 %char
@@ -18,16 +18,13 @@ import ErrorMsg.ErrorMsg;
 private java_cup.runtime.Symbol nextToken(int kind){
 	return nextToken(kind,yytext());
 }
-
-Lexer(java.io.InputStream s) {
-  this(s);
-}
+ 
 
 %}
 
 %eofval{
 	{
-       if(yystate()==STRING) return sym.ERROR;
+      if(yy_state ==STRING) return nextToken(sym.ERROR);
 	 else return nextToken(sym.EOF);
         }
 %eofval}
@@ -102,8 +99,67 @@ NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
 <YYINITIAL> "CHAR"        { return nextToken(sym.CHAR); }
 <YYINITIAL> "BOOLEAN"     { return nextToken(sym.BOOLEAN); }
 
+
+<YYINITIAL> "alter"       { return nextToken(sym.ALTER); }
+<YYINITIAL> "add"         { return nextToken(sym.ADD); }
+<YYINITIAL> "all"         { return nextToken(sym.ALL); }
+<YYINITIAL> "and"         { return nextToken(sym.AND); }
+<YYINITIAL> "any"         { return nextToken(sym.ANY); }
+<YYINITIAL> "as"          { return nextToken(sym.AS); }
+<YYINITIAL> "asc"         { return nextToken(sym.ASC); }
+<YYINITIAL> "by"          { return nextToken(sym.BY); }
+<YYINITIAL> "create"      { return nextToken(sym.CREATE); }
+<YYINITIAL> "delete"      { return nextToken(sym.DELETE); }
+<YYINITIAL> "desc"        { return nextToken(sym.DESC); }
+<YYINITIAL> "drop"        { return nextToken(sym.DROP); }
+<YYINITIAL> "database"    { return nextToken(sym.DATABASE); }
+<YYINITIAL> "escape"      { return nextToken(sym.ESCAPE); }
+<YYINITIAL> "exists"      { return nextToken(sym.EXISTS); }
+<YYINITIAL> "from"        { return nextToken(sym.FROM); }
+<YYINITIAL> "index"       { return nextToken(sym.INDEX); }
+<YYINITIAL> "insert"      { return nextToken(sym.INSERT); }
+<YYINITIAL> "into"        { return nextToken(sym.INTO); }
+<YYINITIAL> "key"         { return nextToken(sym.KEY); }
+<YYINITIAL> "like"        { return nextToken(sym.LIKE); }
+<YYINITIAL> "not"         { return nextToken(sym.NOT); }
+<YYINITIAL> "null"        { return nextToken(sym.NULL); }
+<YYINITIAL> "on"          { return nextToken(sym.ON); }
+<YYINITIAL> "or"          { return nextToken(sym.OR); }
+<YYINITIAL> "order"       { return nextToken(sym.ORDER); }
+<YYINITIAL> "primary"     { return nextToken(sym.PRIMARY); }
+<YYINITIAL> "set"         { return nextToken(sym.SET); }
+<YYINITIAL> "select"      { return nextToken(sym.SELECT); }
+<YYINITIAL> "table"       { return nextToken(sym.TABLE); }
+<YYINITIAL> "update"      { return nextToken(sym.UPDATE); }
+<YYINITIAL> "view"        { return nextToken(sym.VIEW); }
+<YYINITIAL> "values"      { return nextToken(sym.VALUES); }
+<YYINITIAL> "where"       { return nextToken(sym.WHERE); }
+<YYINITIAL> "auto"        { return nextToken(sym.AUTO); }
+<YYINITIAL> "check"       { return nextToken(sym.CHECK); }
+<YYINITIAL> "union"       { return nextToken(sym.UNION); }
+<YYINITIAL> "use"         { return nextToken(sym.USE); }
+<YYINITIAL> "having"      { return nextToken(sym.HAVING); }
+<YYINITIAL> "default"     { return nextToken(sym.DEFAULT); }
+<YYINITIAL> "group"       { return nextToken(sym.GROUP); }
+<YYINITIAL> "increment"   { return nextToken(sym.INCREMENT); }
+<YYINITIAL> "distinct"    { return nextToken(sym.DISTINCT); }
+<YYINITIAL> "in"          { return nextToken(sym.IN); }
+
+<YYINITIAL> "avg"         { return nextToken(sym.AVG); }
+<YYINITIAL> "count"       { return nextToken(sym.COUNT); }
+<YYINITIAL> "min"         { return nextToken(sym.MIN); }
+<YYINITIAL> "max"         { return nextToken(sym.MAX); }
+<YYINITIAL> "sum"         { return nextToken(sym.SUM); }
+
+<YYINITIAL> "int"         { return nextToken(sym.INT); }
+<YYINITIAL> "float"       { return nextToken(sym.FLOAT); }
+<YYINITIAL> "char"        { return nextToken(sym.CHAR); }
+<YYINITIAL> "boolean"     { return nextToken(sym.BOOLEAN); }
+
 <YYINITIAL> "true"        { return nextToken(sym.TRUE); }
 <YYINITIAL> "false"       { return nextToken(sym.FALSE); }
+<YYINITIAL> "TRUE"        { return nextToken(sym.TRUE); }
+<YYINITIAL> "FALSE"       { return nextToken(sym.FALSE); }
 
 <YYINITIAL> [a-zA-Z]([0-9a-zA-Z]|_)*     { return nextToken(sym.NAME,yytext()); }
 
@@ -116,7 +172,7 @@ NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
 <YYINITIAL> \n { }
 
 
-<YYINITIAL> "\'"                 { string.setLength(0);yybegin(STRING); }
+<YYINITIAL> \'                 { string.setLength(0);yybegin(STRING); }
 
  
 <YYINITIAL> "="                  { return nextToken(sym.EQ); }
@@ -140,8 +196,14 @@ NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
  
 
 
-<STRING> {doubleQuote}        { string.append("'"); }
-<STRING> [']                  { yybegin(YYINITIAL);
-                       return nextToken(sym.STRING,string.toString()); }
-<STRING> {str}                { string.append(yytext()); }
+ 
+<STRING>   \'                             { yybegin(YYINITIAL); 
+                                 return nextToken(sym.STRING,string.toString());}
+<STRING>  [^\n\r\'\\]+                   { string.append( yytext() ); }
+<STRING>  \\t                            { string.append('\t'); }
+<STRING>  \\n                            { string.append('\n'); }
 
+<STRING>  \\r                            { string.append('\r'); }
+<STRING>  \\\"                           { string.append('\"'); }
+<STRING>  \\                             { string.append('\\'); }
+ 

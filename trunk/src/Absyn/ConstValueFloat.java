@@ -1,7 +1,7 @@
 package Absyn;
 
 public class ConstValueFloat extends ConstValue{
-	double value;
+	public double value;
 	public ConstValueFloat(int pos,double v)
 	{
 		this.pos=pos;

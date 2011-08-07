@@ -7,24 +7,20 @@ import java.io.InputStream;
 import java_cup.runtime.DefaultSymbolFactory;
 import java_cup.runtime.SymbolFactory;
 
+import Absyn.Exp;
 import ErrorMsg.ErrorMsg;
 import Parse.*;
  
 public class database {
-	public static  void main(String []args) throws IOException
+	public static  void runing() throws IOException
 	{
 		FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\øŒ≥Ã…Ëº∆\\testcase", "txt"));
 		Lexer lexer=new Lexer(input);
-//		while(lexer.hasNext())
-//		{
-//			System.out.print(lexer.nextToken()+"\n");
-//		}
-		ErrorMsg errormsg=new ErrorMsg();
 		SymbolFactory sf=new DefaultSymbolFactory();
 		AdvancedParser parser=new AdvancedParser(lexer,sf);
 		try {
-			parser.parse(); 
-			print.printExp(parser.getParseResult());
+			Exp result=(Exp) parser.parse().value; 
+			print.printExp(result);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

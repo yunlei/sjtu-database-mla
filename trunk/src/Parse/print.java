@@ -125,7 +125,7 @@ public class print {
 		// TODO Auto-generated method stub
 		 print("select "+e.distinct_or_not +" ");
 		 printSelectExpr(e.selectexpr);
-		 print(" from ");
+		  
 		 printFrom(e.fromclause);
 		 if(e.whereclause!=null){
 			 printWhereExp(e.whereclause);
@@ -305,9 +305,17 @@ public class print {
 				print(" escape "+l.escapestring);
 			}
 		}
+		if(e instanceof CompBoolExp)
+		{
+			CompBoolExp cbe=(CompBoolExp)e;
+			printValue(cbe.v1);
+			printCmp(cbe.comp );
+			printValue(cbe.v2);
+		}
 	}
 	private static void printCmp(Symbol comp) {
 		// TODO Auto-generated method stub
+		print(" ");
 		 if(comp.toString().equals("LT"))
 			 print("<");
 		 if(comp.toString().equals("LE"))
@@ -320,6 +328,7 @@ public class print {
 			 print(">=");
 		 if(comp.toString().equals("NEQ"))
 			 print("<>");
+		 print(" ");
 	}
 	private static void printValue(Value v) {
 		// TODO Auto-generated method stub
@@ -384,7 +393,7 @@ public class print {
 			print((ConstValueInt)cv+"");
 		}
 		if(cv instanceof ConstValueString){
-			print((ConstValueString)cv+"");
+			print(((ConstValueString)cv).value+"");
 		}
 		if(cv instanceof ConstValueNull){
 			print("NULL");

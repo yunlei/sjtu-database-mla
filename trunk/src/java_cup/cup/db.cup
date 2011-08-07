@@ -8,7 +8,7 @@ action code {: static Symbol.Symbol sym(String s) {
 	        }
 	    :};
 parser code  {: 
-  public Absyn.Exp parseResult;
+  public Exp parseResult;
   Lexer lexer;
   
   public void syntax_error(java_cup.runtime.Symbol current) {
@@ -38,13 +38,15 @@ terminal ALTER,ADD,ALL,AND,ANY,AS,ASC,BY,CREATE,DELETE,DESC,DROP,DATABASE,
 		PRIMARY,SET,SELECT,TABLE,UPDATE,VIEW,VALUES,WHERE,
 		AVG,COUNT,MIN,MAX,SUM,INT, FLOAT,BOOLEAN,TRUE,FALSE,
 		LPAREN,RPAREN,
-		AUTO,CHECK,DOT,  
+		AUTO,CHECK,DOT, 
 		PLUS,TIMES,MINUS,DIVIDE,MOD,LT,GT,LE,GE,EQ,NEQ,UNION,SEMICOLON,USE,COMMA,DEFAULT,
 		CHAR ,INCREMENT,DISTINCT,GROUP,HAVING,IN;
 		
 
-non terminal Exp sql;
+
 non terminal Exp database;
+non terminal SQLList sql_list;
+non terminal Exp sql;
 non terminal CreateExp create; 
 non terminal SelectExp select;
 non terminal InsertExp insert;
@@ -93,33 +95,38 @@ precedence left DOT;
 
 start with database;
 
-database ::=sql:s
+database ::=sql_list:s
 			{:RESULT=s;:}
 			;
-sql		::=create:c
+sql_list::=sql:s
+			{:RESULT=new SQLList(s,null);:}
+			|sql:s sql_list:l
+			{:RESULT=new SQLList(s,l);:}
+			;
+sql		::=create:c SEMICOLON
 			{:RESULT=c;:}
-			|select:s
+			|select:s SEMICOLON
 			{:RESULT=s;:}
-			|insert:i
+			|insert:i SEMICOLON
 			{:RESULT=i;:}
-			|delete:d
+			|delete:d SEMICOLON
 			{:RESULT=d;:}
-			|update:u
+			|update:u SEMICOLON
 			{:RESULT=u;:}
-			|drop:dr
+			|drop:dr SEMICOLON
 			{:RESULT=dr;:}
-			|alter:a
+			|alter:a SEMICOLON
 			{:RESULT=a;:}
 			;
-create	::=CREATE:C TABLE:T NAME:N LPAREN:LP create_element_list:c RPAREN:RP SEMICOLON:S
+create	::=CREATE:C TABLE:T NAME:N LPAREN:LP create_element_list:c RPAREN:RP 
 			{:RESULT=new CreateTableExp(Cleft,new Symbol(N),c);:}
-			|CREATE:C DATABASE:D NAME:N SEMICOLON:S
+			|CREATE:C DATABASE:D NAME:N 
 			{:RESULT=new CreateDatabaseExp(Cleft,new Symbol(N));:}
-			|USE:U NAME:N SEMICOLON:S
+			|USE:U NAME:N 
 			{:RESULT=new CreateDatabaseExp(Uleft,new Symbol(N));:}
-			|CREATE:C INDEX:I NAME:N1 ON:O NAME:N2 LPAREN:L NAME:N3 RPAREN:R
+			|CREATE:C INDEX:I NAME:N1 ON:O NAME:N2 LPAREN:L NAME:N3 RPAREN:R 
 			{:RESULT=new CreateIndexExp(Cleft,new Symbol(N1),new Symbol(N2),new Symbol(N3),false);:}
-			|CREATE:C NAME:N AS:A select:s
+			|CREATE:C NAME:N AS:A select:s 
 			{:RESULT=new CreateViewExp(Cleft,new Symbol(N),s);:}
 			;
 create_element_list::=create_element:c
@@ -171,7 +178,7 @@ select ::=  SELECT distinct_or_not:d select_expr:s
 			where_clause:w
 			group_clause:g
 			having_clause:h
-			order_clause:o
+			order_clause:o 
 			{: RESULT = new SelectExp(d, s, f, w, g, h, o); :}
 			; 
 distinct_or_not ::=
@@ -252,13 +259,13 @@ const_value::=INTVALUE:i
 			|NULL:n
 			{:RESULT=new ConstValueNull();:}
 			;
-insert::=INSERT:i INTO NAME:N VALUES LPAREN const_value_list:cl RPAREN SEMICOLON
+insert::=INSERT:i INTO NAME:N VALUES LPAREN const_value_list:cl RPAREN  
 		{: RESULT=new InsertExp(ileft,new Symbol(N),cl);:}
-		|INSERT:i INTO NAME:N VALUES LPAREN select:s RPAREN SEMICOLON
+		|INSERT:i INTO NAME:N VALUES LPAREN select:s RPAREN 
 		{: RESULT=new InsertExp(ileft,new Symbol(N),s);:}
-		|INSERT:i INTO NAME:N namelist:nl VALUES LPAREN select:s RPAREN SEMICOLON
+		|INSERT:i INTO NAME:N namelist:nl VALUES LPAREN select:s RPAREN 
 		{: RESULT=new InsertExp(ileft,new Symbol(N),nl,s);:}
-		|INSERT:i INTO NAME:N namelist:nl VALUES LPAREN const_value_list:cl RPAREN SEMICOLON
+		|INSERT:i INTO NAME:N namelist:nl VALUES LPAREN const_value_list:cl RPAREN 
 		{: RESULT=new InsertExp(ileft,new Symbol(N),nl,cl);:}
 		;
 const_value_list::=const_value:c
@@ -272,10 +279,10 @@ namelist::=NAME:N
 		{:RESULT=new NameList(Nleft,new Symbol(N),nl);:}
 		;
 				
-delete::=DELETE:D FROM NAME:N  SEMICOLON
+delete::=DELETE:D FROM NAME:N  
 		{:RESULT=new DeleteExp(Dleft,new Symbol(N),null);:}
-		|DELETE:D FROM NAME:N 	WHERE bool_expr SEMICOLON
-		{:RESULT=new DeleteExp(Dleft,new Symbol(N),null);:}
+		|DELETE:D FROM NAME:N 	WHERE bool_expr:b 
+		{:RESULT=new DeleteExp(Dleft,new Symbol(N),b);:}
 		;
 
 assignment::=NAME:N EQ value:v
@@ -286,23 +293,23 @@ assignlist::=assignment:a
 			|assignment:a assignlist:al
 			{:RESULT=new AssignList(a,al);:}	
 			;
-update::=UPDATE:U NAME:N SET assignlist:a WHERE bool_expr:b SEMICOLON
+update::=UPDATE:U NAME:N SET assignlist:a WHERE bool_expr:b 
 		{:RESULT=new UpdateExp(Uleft,new Symbol(N),a,b);:}
-		|UPDATE:U NAME:N SET assignlist:a SEMICOLON
+		|UPDATE:U NAME:N SET assignlist:a 
 		{:RESULT=new UpdateExp(Uleft,new Symbol(N),a,null);:}
 		;
-drop::=DROP:D TABLE NAME:N SEMICOLON 
-		{:new DropTableExp(Dleft,new Symbol(N));:}
-		|DROP:D VIEW NAME:N SEMICOLON 
-		{:new DropViewExp(Dleft,new Symbol(N));:}
-		|DROP:D INDEX NAME:N1 ON NAME:N2 SEMICOLON 
-		{:new DropIndexExp(Dleft,new Symbol(N2),new Symbol(N1));:}
-		|DROP:D DATABASE NAME:N SEMICOLON 
-		{:new DropDatabaseExp(Dleft,new Symbol(N));:}
+drop::=DROP:D TABLE NAME:N  
+		{:RESULT=new DropTableExp(Dleft,new Symbol(N));:}
+		|DROP:D VIEW NAME:N  
+		{:RESULT=new DropViewExp(Dleft,new Symbol(N));:}
+		|DROP:D INDEX NAME:N1 ON NAME:N2  
+		{:RESULT=new DropIndexExp(Dleft,new Symbol(N2),new Symbol(N1));:}
+		|DROP:D DATABASE NAME:N  
+		{:RESULT=new DropDatabaseExp(Dleft,new Symbol(N));:}
 		;		
-alter::=ALTER:A TABLE NAME:N ADD NAME:N1 data_type:dt	
+alter::=ALTER:A TABLE NAME:N ADD NAME:N1 data_type:dt	 
 		{:RESULT=new AlterAddExp(Aleft,new Symbol(N),new Symbol(N1),dt);:}
-		|ALTER:A TABLE NAME:N DROP NAME:N1
+		|ALTER:A TABLE NAME:N DROP NAME:N1 
 		{:RESULT=new AlterDropExp(Aleft,new Symbol(N),new Symbol(N1));:}
 		;
 func::=AVG
@@ -351,7 +358,7 @@ cop ::=   LT
 		 {: RESULT = new Symbol("NEQ"); :}
 		;
 bool_expr::=value:v1 cop:c value:v2
-			{:new CompBoolExp(v1,c,v2);:}
+			{:RESULT=new CompBoolExp(v1,c,v2);:}
 			|bool_expr:b1 AND bool_expr:b2
 			{:RESULT=new BoolAndExp(b1,b2);:}
 			|bool_expr:b1 OR bool_expr:b2
@@ -371,11 +378,11 @@ bool_expr::=value:v1 cop:c value:v2
 			|LPAREN bool_expr:b RPAREN
 			{:RESULT=b;:}
 			|value:v LIKE STRING:S
-			{:new LikeEscapeExp(v,true,false,S,null);:}
+			{:RESULT=new LikeEscapeExp(v,true,false,S,null);:}
 			|value:v LIKE STRING:S ESCAPE STRING:S2
-			{:new LikeEscapeExp(v,true,true,S,S2);:}
+			{:RESULT=new LikeEscapeExp(v,true,true,S,S2);:}
 			||value:v NOT LIKE STRING:S
-			{:new LikeEscapeExp(v,false,false,S,null);:}
+			{:RESULT=new LikeEscapeExp(v,false,false,S,null);:}
 			;
 select_expr::=TIMES:T
 			{:RESULT=new SelectExpr(new ColValue(new ColName(null, new Symbol("*"))),null,null);:}

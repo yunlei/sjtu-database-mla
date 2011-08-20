@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class CompBoolExp extends BoolExp{
 	public Value v1;
 	public Symbol comp;

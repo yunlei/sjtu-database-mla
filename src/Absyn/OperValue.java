@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class OperValue extends Value{
 
 	public Symbol op;

@@ -161,6 +161,22 @@ NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
 <YYINITIAL> "TRUE"        { return nextToken(sym.TRUE); }
 <YYINITIAL> "FALSE"       { return nextToken(sym.FALSE); }
 
+<YYINITIAL> "DESCRIBE"    {return nextToken(sym.DESCRIBE);}
+<YYINITIAL> "describe"    {return nextToken(sym.DESCRIBE);}
+<YYINITIAL> "GRANT"    {return nextToken(sym.GRANT);}
+<YYINITIAL> "grant"    {return nextToken(sym.GRANT);}
+<YYINITIAL> "TO"    {return nextToken(sym.TO);}
+<YYINITIAL> "to"    {return nextToken(sym.TO);}
+<YYINITIAL> "WITH"    {return nextToken(sym.WITH);}
+<YYINITIAL> "with"    {return nextToken(sym.WITH);}
+<YYINITIAL> "OPTION"    {return nextToken(sym.OPTION);}
+<YYINITIAL> "option"    {return nextToken(sym.OPTION);}
+<YYINITIAL> "foreign"    {return nextToken(sym.FOREIGN);}
+<YYINITIAL> "FOREIGN"    {return nextToken(sym.FOREIGN);}
+<YYINITIAL> "REFERENCES"    {return nextToken(sym.REFERENCES);}
+<YYINITIAL> "references"    {return nextToken(sym.REFERENCES);}
+
+
 <YYINITIAL> [a-zA-Z]([0-9a-zA-Z]|_)*     { return nextToken(sym.NAME,yytext()); }
 
 <YYINITIAL> {int}                        { return nextToken(sym.INTVALUE,new Integer(yytext())); }

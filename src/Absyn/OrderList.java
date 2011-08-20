@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class OrderList {
 	public ColName col;
 	Symbol asc_desc;

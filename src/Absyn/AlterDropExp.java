@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class AlterDropExp extends AlterExp {
 	public Symbol tablename;
 	public Symbol col;

@@ -2,8 +2,12 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class NameList {
-	int pos;
+	public int pos;
 	public Symbol name;
 	public NameList next;
 	public NameList(int p, Symbol s,NameList n)

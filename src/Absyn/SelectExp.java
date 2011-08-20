@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class SelectExp extends Exp{
 	public Symbol distinct_or_not;
 	public SelectExpr selectexpr;

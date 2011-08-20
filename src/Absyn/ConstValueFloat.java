@@ -1,6 +1,9 @@
 package Absyn;
 
 public class ConstValueFloat extends ConstValue{
+	/**
+	 * 
+	 */
 	public double value;
 	public ConstValueFloat(int pos,double v)
 	{

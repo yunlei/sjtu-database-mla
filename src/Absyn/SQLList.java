@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class SQLList extends Exp{
 	public Exp first;
 	public SQLList next;

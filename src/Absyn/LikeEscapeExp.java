@@ -1,6 +1,10 @@
 package Absyn;
 
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class LikeEscapeExp extends BoolExp{
 	public Value value;
 	public boolean like_or_not;

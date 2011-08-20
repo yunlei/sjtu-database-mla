@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class CreateElementList {
 	public CreateElement first;
 	public CreateElementList next;

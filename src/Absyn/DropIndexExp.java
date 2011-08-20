@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class DropIndexExp extends DropExp {
 	public Symbol tablename;
 	public Symbol indexname;

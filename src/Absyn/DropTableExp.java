@@ -2,11 +2,17 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class DropTableExp extends DropExp{
-	public Symbol name;
-	public DropTableExp(int p, Symbol symbol)
-	{
-		this.pos=p;
-		name=symbol;
+	public NameList namelist;
+
+	public DropTableExp(int p,NameList namelist) {
+		pos=p;
+		this.namelist = namelist;
 	}
+ 
+ 
 }

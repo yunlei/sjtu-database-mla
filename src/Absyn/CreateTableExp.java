@@ -2,14 +2,28 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class CreateTableExp extends CreateExp{
-	private Symbol name;
-	private CreateElementList element;
+	public Symbol name;
+	public CreateElementList element;
+	public BoolExp check;
 	public CreateTableExp(int p,Symbol name, CreateElementList element) {
 		this.pos=p;
 		this.name = name;
 		this.element = element;
+		this.check = null;
 	}
+	
+	public CreateTableExp(int p,Symbol name, CreateElementList element, BoolExp check) {
+		this.pos=p;
+		this.name = name;
+		this.element = element;
+		this.check = check;
+	}
+
 	public Symbol getName() {
 		return name;
 	}

@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class ConstValueBoolean extends ConstValue{
 	public boolean flag;
 	public ConstValueBoolean(int p,boolean f)

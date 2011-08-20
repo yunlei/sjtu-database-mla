@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class UpdateExp extends Exp{
 	public Symbol name;
 	public AssignList assign;

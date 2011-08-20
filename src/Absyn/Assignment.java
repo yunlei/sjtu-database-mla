@@ -2,8 +2,12 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class Assignment {
-	int pos;
+	public int pos;
 	public Symbol var;
 	public Value value;
 	public Assignment(int p,Symbol v,Value va)

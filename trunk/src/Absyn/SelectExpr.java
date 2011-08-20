@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class SelectExpr {
 	public Value value;
 	public AsOrNot alias;

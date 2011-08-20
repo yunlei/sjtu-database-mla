@@ -7,6 +7,7 @@ import Symbol.Symbol;
  * @author MaYunlei
  *
  */
+ 
 public class CreateIndexExp extends CreateExp {
 
 	private Symbol index_name;

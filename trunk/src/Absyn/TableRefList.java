@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class TableRefList {
 	public TableRef tableref;
 	public TableRefList next;

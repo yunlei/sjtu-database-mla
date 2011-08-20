@@ -2,6 +2,10 @@ package Absyn;
 
  
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class InExp extends BoolExp{
 	public Value value;
 	public boolean in;

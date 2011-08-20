@@ -2,6 +2,10 @@ package Absyn;
 
 import Symbol.Symbol;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class ColumnDefinition extends CreateElement {
 	int pos;
 	public Symbol name;

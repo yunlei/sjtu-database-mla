@@ -22,6 +22,40 @@ public class print {
 			printInsertExp((InsertExp)e);
 		if(e instanceof UpdateExp)
 			printUpdateExp((UpdateExp)e);
+		if(e instanceof DescribeExp)
+			printDescribeExp((DescribeExp)e);
+		if(e instanceof GrantExp)
+			printGrantExp((GrantExp)e);
+		if(e instanceof UseDatabaseExp)
+			printUseExp((UseDatabaseExp)e);
+	}
+	private static void printUseExp(UseDatabaseExp e) {
+		// TODO Auto-generated method stub
+		print("use database"+e.name);
+		
+	}
+	private static void printGrantExp(GrantExp e) {
+		// TODO Auto-generated method stub
+		print("grant   ");
+		printPrivileges(e.p);
+		printNameList(e.database_list);
+		print(" to ");
+		printNameList(e.user_list);
+		if(e.WithOption)
+			print("with option");
+		
+	}
+	private static void printPrivileges(Privileges p) {
+		// TODO Auto-generated method stub
+		if(p==null)
+			return;
+		print(p.Privilege.privilege+" ");
+		printPrivileges(p.next);
+	}
+	private static void printDescribeExp(DescribeExp e) {
+		// TODO Auto-generated method stub
+		print(" describe ");
+		printNameList(e.names);
 	}
 	private static void printSQLList(SQLList e) {
 		// TODO Auto-generated method stub
@@ -54,11 +88,12 @@ public class print {
 		print("insert into "+e.name);
 		if(e.namelist!=null)
 			printNameList(e.namelist); 
-		print(" values ");
+		print(" values ( ");
 		if(e.constvalue!=null)
 			printConstValueList(e.constvalue); 
 		else if(e.select!=null)
-			printSelectExp(e.select); 
+			printSelectExp(e.select);
+		print(")");
 	} 
 	private static void printConstValueList(ConstValueList cv) {
 		// TODO Auto-generated method stub
@@ -90,7 +125,7 @@ public class print {
 		if( e instanceof DropTableExp)
 		{
 			DropTableExp d=(DropTableExp)e;
-			print(" table "+d.name);
+			printNameList(d.namelist);
 		}
 		if(e instanceof DropViewExp)
 		{
@@ -379,24 +414,24 @@ public class print {
 		 {
 			 ConstValueBoolean cvb=(ConstValueBoolean)cv;
 			 if(cvb.flag){
-				 print("true");
+				 print(" true ");
 			 }
 			 else
-				 print("false");			             
+				 print(" false ");			             
 		}
 		if (cv instanceof ConstValueFloat) 
 		{
 			ConstValueFloat cvf = (ConstValueFloat) cv;			
-			print("" + cvf);
+			print(" " + cvf.value+" ");
 		}
 		if(cv instanceof ConstValueInt){
-			print((ConstValueInt)cv+"");
+			print(" "+ ((ConstValueInt)cv).value+" ");
 		}
 		if(cv instanceof ConstValueString){
-			print(((ConstValueString)cv).value+"");
+			print(" '"+((ConstValueString)cv).value+"' ");
 		}
 		if(cv instanceof ConstValueNull){
-			print("NULL");
+			print(" NULL ");
 		}
 		
 

@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class BoolAndExp extends BoolExp{
 	public BoolExp exp1;
 	public BoolExp exp2;

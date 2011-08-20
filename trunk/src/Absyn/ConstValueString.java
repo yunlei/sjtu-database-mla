@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class ConstValueString extends ConstValue{
 	public String value;
 	public ConstValueString(int p, String v){

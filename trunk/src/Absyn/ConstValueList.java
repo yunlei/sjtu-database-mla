@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class ConstValueList {
 	public ConstValue value;
 	public ConstValueList next;

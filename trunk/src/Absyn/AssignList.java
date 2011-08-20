@@ -1,5 +1,9 @@
 package Absyn;
 
+/**
+ * @author MaYunlei
+ *
+ */
 public class AssignList {
 	public Assignment first;
 	public AssignList next;

@@ -14,4 +14,8 @@ public class ConstValueString extends ConstValue{
 		value = result;
 		// TODO Auto-generated constructor stub
 	}
+	public String getValue()
+	{
+		return value;
+	}
 }

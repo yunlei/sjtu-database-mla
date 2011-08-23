@@ -4,6 +4,6 @@ package Absyn;
  * @author MaYunlei
  *
  */
-public class ConstValue extends Value{
-
+abstract public class ConstValue extends Value{
+	public abstract Object getValue(); 
 }

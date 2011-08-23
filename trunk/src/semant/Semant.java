@@ -1,8 +1,14 @@
 package semant;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.ObjectInputStream;
+
 import Absyn.*;
 import Alge.*;
  
+import DBInfo.View;
+import DBInfo.ViewList;
 import ErrorMsg.ErrorList;
 import ErrorMsg.ErrorMsg;
 import Symbol.Symbol;
@@ -60,6 +66,7 @@ public class Semant{
 		{
 			result= transExp((AlterExp)e);
 		}
+		
 		return result; 
 	}
 	public Relation transExp(DropExp e)
@@ -262,7 +269,7 @@ public class Semant{
 				colnamelist=colnamelist.next;
 			}
 		}
-		 return new Update(new RealRelation(e.name.toString()),e.assign,e.bool);	
+		 return new Update((e.name.toString()),e.assign,e.bool);	
 	}
 	public Relation transExp(DeleteExp e)
 	{
@@ -389,16 +396,12 @@ public class Semant{
 		//genegate the relation;
 		Relation result;
 		result=new Sigma(new Condition(s.whereclause.boolexp),table);
-		result=new Project(s.selectexpr,result);
-		if(s.groupclause!=null)
-			result=new Group(result,s.groupclause.name);
-		if(s.havingclause!=null&&(result instanceof Group))
-			result=new Sigma(new Condition(s.havingclause.boolexp),result);
+		result=new Project(s.selectexpr,result,s.groupclause.name,new Condition(s.havingclause.boolexp));
 		if(s.orderclause!=null)
 			result=new Order(result,s.orderclause.orderlist);
 		if(s.distinct_or_not!=null)
 			result=new Gamma(result);
-		return null;		
+		return null;
 	}
 	public boolean colNameInCrossUnion(ColName colname,CrossJoin u)
 	{
@@ -439,12 +442,47 @@ public class Semant{
 		}
 		if(tl.tableref.name!=null)
 		{
-			r1=new RealRelation(tl.tableref.name.toString()); 
-			r1.attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
+			AttrList attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
+			if(attrlist!=null){
+				r1=new RealRelation(tl.tableref.name.toString()); 
+				r1.attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
+			}
+			else{//is a view
+				try{
+					File file=new File(DBInfo.DbMani.rootpath+env.database+"\\view.list");
+					ViewList viewlist=null;
+					if(!file.exists())
+					{	
+							throw new Exception("view "+tl.tableref.name.toString()+"not found.");			
+					}
+					else
+					{
+						ObjectInputStream ois=new ObjectInputStream(new FileInputStream(file));
+						viewlist=(ViewList)ois.readObject(); 
+						while(viewlist!=null)
+						{
+							View view=viewlist.view;
+							if(view.name.equals(tl.tableref.name.toString()))
+							{
+								r1=transExp(view.select);
+								break;
+							}
+							viewlist=viewlist.next;
+						}
+						if(viewlist==null)
+							throw new Exception("view "+tl.tableref.name.toString()+"not found.");	
+					}
+				}
+				catch(Exception e)
+				{
+					putError(e.getMessage(),-1);
+					return null;
+				}
+			}
 		}
 		if(tl.tableref.subquery!=null)
 		{
-			r1=transExp(tl.tableref.subquery);			
+			r1=transExp(tl.tableref.subquery);
 		}
 		if(tl.tableref.asname!=null)
 		{
@@ -518,7 +556,7 @@ public class Semant{
 				putError("type numbers not compatible",e.pos);
 				return null;
 			}			
-			return new Insert(namelist,e.constvalue);
+			return new Insert(tablename,namelist,e.constvalue);
 		}
 		else {
 			Relation sele=transExp(e.select);
@@ -554,10 +592,10 @@ public class Semant{
 			{
 				putError("parameter numbers not compatible",e.pos);
 				return null;
-			}			
+			}
+			return new Insert(tablename,namelist,sele);
 		}
-			
-		return null;
+			 
 	}
 	public RelaList transSQLs(SQLList e)
 	{ 

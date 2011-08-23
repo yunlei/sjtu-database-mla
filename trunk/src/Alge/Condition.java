@@ -7,5 +7,5 @@ public class Condition {
 		this.boolExp = boolExp;
 	}
 
-	BoolExp boolExp;
+	public BoolExp boolExp;
 }

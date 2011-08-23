@@ -15,4 +15,11 @@ public class ConstValueBoolean extends ConstValue{
 	{
 		flag=f;
 	}
+	public String getValue()
+	{
+		if(flag)
+			return "true";
+		return "false";
+	}
+	
 }

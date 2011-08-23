@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class CreateTableExp extends CreateExp{
+public class CreateTableExp extends CreateExp implements Serializable{
 	public Symbol name;
 	public CreateElementList element;
 	public BoolExp check;

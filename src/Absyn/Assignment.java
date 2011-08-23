@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class Assignment {
+public class Assignment implements Serializable{
 	public int pos;
 	public Symbol var;
 	public Value value;

@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class ColName {
+public class ColName  implements Serializable{
 	public Symbol table;
 	public Symbol col;
 	public ColName(Symbol t,Symbol c)

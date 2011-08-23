@@ -1,10 +1,12 @@
 package Alge;
 
+import java.io.Serializable;
+
 import Absyn.BoolExp;
 import Absyn.ColName;
 import Absyn.ConstValue;
 
-public class Attr {
+public class Attr implements Serializable{
 	public String name;
 	public Type type;
 	public boolean not_null;

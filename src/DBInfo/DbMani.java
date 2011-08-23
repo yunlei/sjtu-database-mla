@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.RandomAccessFile;
 
 import Absyn.SelectExp;
+import Alge.AttrList;
 import Symbol.Symbol;
 
 /**
@@ -26,6 +28,9 @@ public class DbMani {
 		{
 			e.printStackTrace();
 			return false;	
+		}
+		finally{
+			
 		}
 	}
 	public static long getfilesize(String database,String tablename)
@@ -66,7 +71,8 @@ public class DbMani {
 			int size;
 			do{
 			size=fis.read(bytes);
-			result+=new String(bytes);
+			bytes[size+1]='\0';
+			result+=new String(bytes,0,size);
 			}while(size==1024);
 			return result;
 		} catch (FileNotFoundException e) {
@@ -76,7 +82,7 @@ public class DbMani {
 			// TODO Auto-generated catch block
 			e.printStackTrace(); 
 		}
-		return ""; 
+		return "";
 	}
 	public static void delteFile(String database,String tablename) {
 		File file=new File(rootpath+database+"\\"+tablename+".data");
@@ -89,7 +95,7 @@ public class DbMani {
 		try {
 			if(!file.exists())
 				file.createNewFile();
-			RandomAccessFile rFile = new RandomAccessFile(tablename, "rw");
+			RandomAccessFile rFile = new RandomAccessFile(file, "rw");
 			b = content.getBytes();
 			rFile.seek(length);
 			rFile.writeBytes(content);
@@ -107,14 +113,31 @@ public class DbMani {
 		datafile=new File(DBInfo.DbMani.rootpath+dbname+"\\"+tablename+".data");
 		if(!datafile.exists())
 			datafile.createNewFile();
+		
 	}
 	public static boolean createDB(String dbname)
 	{ 
-		return true;
+		
+		File dbfile=new File(DBInfo.DbMani.rootpath+dbname);
+		return dbfile.mkdir(); 
+		 
+		
 	}
 	public  static Alge.AttrList getAttriList(String db,String table)
 	{
-		return null;
+		try{
+			File file=new File(DBInfo.DbMani.rootpath+db+"\\"+table+".attr");
+			if(!file.exists())
+				return null;
+			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(file));
+			Alge.AttrList list=(AttrList) ois.readObject();
+			return list;
+		}
+		catch(Exception e)
+		{
+			return null;
+		}
+		
 	}
 	public static SelectExp getViewDef(String db,String table)
 	{

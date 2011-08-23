@@ -1,10 +1,12 @@
 package Absyn;
 
+import java.io.Serializable;
+
 /**
  * @author MaYunlei
  *
  */
-public class ConstValueNull extends ConstValue{
+public class ConstValueNull extends ConstValue implements Serializable{
 
 	@Override
 	public Object getValue() {

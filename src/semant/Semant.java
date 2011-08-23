@@ -19,12 +19,31 @@ public class Semant{
 	public Semant(Env env) {
 		this.env = env;
 	}
+	public boolean hasError()
+	{
+		return error_list!=null;
+	}
+	public void printError()
+	{
+		ErrorList tmp=error_list;
+		if(tmp==null)
+			return ;
+		System.out.print("***************SEMANT**ERROR**********************\n");
+		while(tmp!=null)
+		{
+			System.out.print(tmp.msg);
+			System.out.print("\n");
+			tmp=tmp.next;
+		}
+		System.out.print("*********************ERROR*END******************\n");
+	}
 	public void putError(String msg,int loc)
 	{
 		error_list=new ErrorList(new ErrorMsg( loc,msg),error_list);
 	}
 	public Relation transExp(Exp e)
 	{
+		 
 		 Relation  result = null;
 		if(e instanceof CreateExp)
 		{
@@ -71,6 +90,8 @@ public class Semant{
 	}
 	public Relation transExp(DropExp e)
 	{
+		if(!checkDB(e)) 
+			return null;
 		if(e instanceof DropTableExp)
 		{
 			DropTableExp de=(DropTableExp)e;
@@ -84,6 +105,7 @@ public class Semant{
 					putError("table name:"+name+" not implemented.",namelist.pos);
 					return null;
 				}
+				namelist=namelist.next;
 			}
 			return new Drop(Drop.DROPTABLE,namelist);
 		}
@@ -126,6 +148,8 @@ public class Semant{
 	 */
 	public Relation transExp(AlterExp e)
 	{
+		if(!checkDB(e)) 
+			return null;
 		if(e instanceof AlterAddExp)//ALTER  TABLE NAME  ADD NAME  data_type:dt
 		{
 			AlterAddExp aae=(AlterAddExp)e;
@@ -184,6 +208,8 @@ public class Semant{
 	}
 	public Relation transExp(DescribeExp e)
 	{
+		if(!checkDB(e)) 
+			return null;
 		NameList namelist=e.names;
 		while(namelist!=null)
 		{
@@ -194,12 +220,15 @@ public class Semant{
 				putError("table name:"+table+"not found(in describe)",e.pos);
 				return null;
 			}
+			namelist=namelist.next;
 		}
 		return new Describe(e.names);
 				
 	}
 	public Relation transExp(UpdateExp e)
 	{
+		if(!checkDB(e)) 
+			return null;
 		//update tablename set asignment where boolexp
 		//check tablename
 		AttrList attrlist =DBInfo.DbMani.getAttriList(env.database, e.name.toString());
@@ -239,12 +268,14 @@ public class Semant{
 					}
 					break;
 				}
+				tmplist=tmplist.next;
 			}
 			if(!flag)
 			{
 				putError("assign parameter:"+name+" not found.",assign.pos);
 				return null;
 			}
+			assignlist=assignlist.next;
 		}
 		if(e.bool!=null){
 			ColNameList colnamelist=this.getColNameList(e.bool);			
@@ -260,6 +291,7 @@ public class Semant{
 						flag=true;
 						break;
 					}
+					tmplist=tmplist.next;
 				}
 				if(!flag)
 				{
@@ -273,6 +305,8 @@ public class Semant{
 	}
 	public Relation transExp(DeleteExp e)
 	{
+		if(!checkDB(e)) 
+			return null;
 		String tablename=e.name.toString();
 		if(e.exp!=null)
 		{
@@ -290,13 +324,15 @@ public class Semant{
 					{
 						flag=true;
 						break;
-					}					
+					}	
+					tmpAttrlist=tmpAttrlist.next;
 				}
 				if(!flag)
 				{
 					putError("colname :"+colname.col+"(in where clause) not found",e.pos);
 					return null;
 				} 
+				namelist=namelist.next;
 			} 
 		}
 		return new Delete(tablename,e.exp);
@@ -314,6 +350,8 @@ public class Semant{
 	}
 	public Relation transExp(SelectExp s)
 	{ 
+		if(!checkDB(s)) 
+			return null;
 		Relation table=transFrom(s.fromclause.tablereflist);
 		if(s.havingclause!=null&&s.groupclause==null)
 		{
@@ -321,14 +359,19 @@ public class Semant{
 			return null;
 		} 
 		//check where select attr is in the table
+		int selectNum=0;
 		SelectExpr select_expr=s.selectexpr;
 		while(select_expr!=null)
 		{
+			selectNum++;
 			if(select_expr.value instanceof ColValue)
 			{
 				ColName colname=((ColValue)select_expr.value).name;
 				if(colname.col.toString().equals("*"))
-				{}
+				{
+					//replace * with real col name;
+					
+				}
 				else
 				{
 					CrossJoin u=(CrossJoin)table;
@@ -346,6 +389,7 @@ public class Semant{
 									flag=true;
 									break;
 								}
+								attlist=attlist.next;
 							}
 						}
 						u=u.next;
@@ -359,24 +403,28 @@ public class Semant{
 			select_expr=select_expr.next;
 		}
 		//check where
-		ColNameList colnamelist=getColNameList(s.whereclause.boolexp);
-		while(colnamelist!=null)
-		{
-			ColName colname=colnamelist.name;
-			CrossJoin u=(CrossJoin)table;
-			if(!colNameInCrossUnion(colname,u))
-				return null;
-			colnamelist=colnamelist.next;
+		if(s.whereclause!=null){
+			ColNameList colnamelist=getColNameList(s.whereclause.boolexp);
+			while(colnamelist!=null)
+			{
+				ColName colname=colnamelist.name;
+				CrossJoin u=(CrossJoin)table;
+				if(!colNameInCrossUnion(colname,u))
+					return null;
+				colnamelist=colnamelist.next;
+			}
 		}
 		//check order list;
-		OrderList orderlist=s.orderclause.orderlist;
-		while(orderlist!=null)
-		{
-			ColName colname=orderlist.col;
-			CrossJoin u=(CrossJoin)table;
-			if(!colNameInCrossUnion(colname,u))
-				return null;			
-			orderlist=orderlist.next;
+		if(s.orderclause!=null){
+			OrderList orderlist=s.orderclause.orderlist;
+			while(orderlist!=null)
+			{
+				ColName colname=orderlist.col;
+				CrossJoin u=(CrossJoin)table;
+				if(!colNameInCrossUnion(colname,u))
+					return null;			
+				orderlist=orderlist.next;
+			}
 		}
 		//check group list;
 		
@@ -384,7 +432,7 @@ public class Semant{
 			return null;
 		//check having list;
 		if (s.havingclause != null) {
-			colnamelist = getColNameList(s.havingclause.boolexp);
+			ColNameList colnamelist = getColNameList(s.havingclause.boolexp);
 			while (colnamelist != null) {
 				ColName colname = colnamelist.name;
 				CrossJoin u = (CrossJoin) table;
@@ -394,14 +442,36 @@ public class Semant{
 			}
 		}
 		//genegate the relation;
-		Relation result;
-		result=new Sigma(new Condition(s.whereclause.boolexp),table);
-		result=new Project(s.selectexpr,result,s.groupclause.name,new Condition(s.havingclause.boolexp));
+		Relation result=null;
+		if(s.whereclause!=null){
+			result=new Sigma(new Condition(s.whereclause.boolexp),table);
+		}
+		else
+			result=new Sigma(null,table);
+		if(s.groupclause==null)
+			result=new Project(s.selectexpr,result,null,null);
+		else if(s.havingclause==null)
+			result=new Project(s.selectexpr,result,s.groupclause.name,null);
+		else
+			result=new Project(s.selectexpr,result,s.groupclause.name,new Condition(s.havingclause.boolexp));
 		if(s.orderclause!=null)
 			result=new Order(result,s.orderclause.orderlist);
 		if(s.distinct_or_not!=null)
 			result=new Gamma(result);
-		return null;
+		return result;
+	}
+	public boolean checkDB(Exp e)
+	{
+		if(env.database==null)
+		{
+			putError("database not selected yet.",e.pos);
+			return false;
+		}
+		if(!DBInfo.DbMani.getDB(new Symbol(env.database)))
+		{
+			putError("database(with name:"+env.database+") not found.",e.pos);
+		}
+		return true;
 	}
 	public boolean colNameInCrossUnion(ColName colname,CrossJoin u)
 	{
@@ -419,6 +489,8 @@ public class Semant{
 						flag=true;
 						break;
 					}
+					attlist=attlist.next;
+					
 				}
 			}
 			u=u.next;
@@ -445,7 +517,13 @@ public class Semant{
 			AttrList attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
 			if(attrlist!=null){
 				r1=new RealRelation(tl.tableref.name.toString()); 
+				AttrList orderlist=null,tmp=attrlist;
+				while(tmp!=null){
+					orderlist=new AttrList(tmp.attr,orderlist);
+					tmp=tmp.next;
+				}
 				r1.attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
+				r1.results=DBInfo.DbMani.readFile(env.database, tl.tableref.name.toString());
 			}
 			else{//is a view
 				try{
@@ -453,7 +531,7 @@ public class Semant{
 					ViewList viewlist=null;
 					if(!file.exists())
 					{	
-							throw new Exception("view "+tl.tableref.name.toString()+"not found.");			
+							throw new Exception("name:"+tl.tableref.name.toString()+" not found(neither a table or a view).");			
 					}
 					else
 					{
@@ -488,7 +566,9 @@ public class Semant{
 		{
 			r1.asname=tl.tableref.asname.toString();
 		} 
-		u=new CrossJoin(tl.tableref.name.toString(),r1,transFrom(tl.next));
+		CrossJoin next=transFrom(tl.next);
+		u=new CrossJoin(tl.tableref.name.toString(),r1,next);
+		 
 		return u;
 	}
 
@@ -507,16 +587,24 @@ public class Semant{
 	 
 	public Relation transExp(InsertExp e)
 	{
+		if(!checkDB(e)) 
+			return null;
 		/*sort the namelist according to the defination */
 		NameList namelist=e.namelist;
 		String tablename=e.name.toString();
 		AttrList attrlist=DBInfo.DbMani.getAttriList(env.database,tablename);
+		if(attrlist==null)
+		{
+			putError("table:"+tablename+" not found.",e.pos);
+			return null;
+		}
 		if(namelist==null)
 		{
 			AttrList tmp=attrlist;
 			while(tmp!=null){
 				if(tmp.attr.name!=null&&!tmp.attr.name.equals(""))
 					namelist=new NameList(-1,new Symbol(tmp.attr.name),namelist);
+				tmp=tmp.next;
 			}
 		}
 		/*type check */
@@ -532,6 +620,7 @@ public class Semant{
 				{
 					if(tmp.attr.name!=null&&tmp.attr.name.equals(tmplist.name.toString()))
 						break;
+					tmp=tmp.next;
 				}
 				if(tmp==null)
 				{
@@ -573,6 +662,7 @@ public class Semant{
 				{
 					if(tmp.attr.name!=null&&tmp.attr.name.equals(tmplist.name.toString()))
 						break;
+					tmp=tmp.next;
 				}
 				if(tmp==null)
 				{
@@ -619,6 +709,9 @@ public class Semant{
 			env.database=cte.name.toString();
 			return new CreateDB(cte.name+"");
 		}
+
+		if(!checkDB(ce)) 
+			return null;
 		if(ce instanceof CreateTableExp)
 		{
 			CreateTableExp cte =(CreateTableExp)ce;
@@ -638,9 +731,9 @@ public class Semant{
 					ColumnDefinition cd=(ColumnDefinition)cre;
 					Type type = null;
 					if(cd.type instanceof NameTy){
-						if( cd.type.toString().equals("int"))
+						if( ((NameTy)cd.type).ty.toString().equals("int"))
 							type=new Type(Type.INT);
-						else if(cd.type.toString().equals("boolean"))
+						else if(((NameTy)cd.type).ty.toString().equals("boolean"))
 							type=new Type(Type.BOOL);
 					} 
 					else if( cd.type instanceof ArrayTy)
@@ -653,7 +746,7 @@ public class Semant{
 					else not_null=false;
 					ConstValue defaultValue=cd.defaultvalue;
 					boolean auto_incre;
-					if(cd.auto_increment_or_not!=null&&cd.auto_increment_or_not.toString().equals("NOTNULL"))
+					if(cd.auto_increment_or_not!=null&&cd.auto_increment_or_not.toString().equals("AUTOINCREMENT"))
 						auto_incre=true;
 					else auto_incre=false;
 					boolean key;
@@ -671,6 +764,7 @@ public class Semant{
 							putError("double defined column :"+att.name,cte.pos);
 							return null;
 						} 
+						tmpList=tmpList.next;
 					} 
 					list=new AttrList(att,list);
 				} 
@@ -702,6 +796,7 @@ public class Semant{
 							putError(col_name_list.name.col.toString()+" not defined!",cte.pos);
 							return null;
 						}
+						col_name_list=col_name_list.next;
 					}
 					list=new AttrList(new Attr(cd.boolexp),list);
 				}
@@ -763,6 +858,7 @@ public class Semant{
 								break;
 							}
 						}
+						fklist=fklist.next;
 					}
 					if(!flag)
 					{
@@ -798,6 +894,7 @@ public class Semant{
 							cie.getCol_name().toString(),
 							cie.isUnique());
 				}
+				list=list.next;
 				
 			}
 			return null;

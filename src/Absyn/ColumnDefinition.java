@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class ColumnDefinition extends CreateElement {
+public class ColumnDefinition extends CreateElement implements Serializable{
 	int pos;
 	public Symbol name;
 	public DataType type;

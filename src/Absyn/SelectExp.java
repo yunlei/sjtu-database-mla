@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class SelectExp extends Exp{
+public class SelectExp extends Exp implements Serializable{
 	public Symbol distinct_or_not;
 	public SelectExpr selectexpr;
 	public FromClause fromclause;

@@ -1,10 +1,12 @@
 package Absyn;
 
+import java.io.Serializable;
+
 /**
  * @author MaYunlei
  *
  */
-public class ConstValueString extends ConstValue{
+public class ConstValueString extends ConstValue implements Serializable{
 	public String value;
 	public ConstValueString(int p, String v){
 		pos = p;

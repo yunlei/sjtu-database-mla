@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class NameList {
+public class NameList implements Serializable{
 	public int pos;
 	public Symbol name;
 	public NameList next;

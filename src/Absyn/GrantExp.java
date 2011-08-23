@@ -1,10 +1,12 @@
 package Absyn;
 
+import java.io.Serializable;
+
 /**
  * @author MaYunlei
  *
  */
-public class GrantExp extends Exp {
+public class GrantExp extends Exp implements Serializable{
 	public Privileges p;
 	public NameList database_list;
 	public NameList user_list;

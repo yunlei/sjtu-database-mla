@@ -4,13 +4,13 @@ import Absyn.AssignList;
 import Absyn.BoolExp;
 
 public class Update extends Relation {
-	public Relation sub;
+	public String tablename;
 	public AssignList assign;
 	public BoolExp bool;
-	public Update(Relation sub, AssignList assign, BoolExp bool) {
-		this.sub = sub;
+	public Update(String tablename, AssignList assign, BoolExp bool) {
+		this.tablename = tablename;
 		this.assign = assign;
 		this.bool = bool;
 	}
-	
+	 
 }

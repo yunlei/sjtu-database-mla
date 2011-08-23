@@ -15,4 +15,8 @@ public class ConstValueInt  extends ConstValue{
 		 
 		this.value=value;
 	}
+	public Integer getValue()
+	{
+		return value;
+	}
 }

@@ -1,6 +1,6 @@
 package semant;
 
 public class Env {
-	String user;
-	String database;
+	public String user;
+	public String database;
 }

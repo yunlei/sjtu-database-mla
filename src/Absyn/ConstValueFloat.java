@@ -11,8 +11,11 @@ public class ConstValueFloat extends ConstValue{
 		this.value=v;
 	}
 	public ConstValueFloat(double v)
-	{
-	
+	{ 
 		this.value=v;
+	}
+	public Double getValue()
+	{
+		return value;
 	}
 }

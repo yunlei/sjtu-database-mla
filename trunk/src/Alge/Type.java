@@ -1,6 +1,8 @@
 package Alge;
 
-public class Type {
+import java.io.Serializable;
+
+public class Type implements Serializable{
 	public static int INT=0;
 	public static int BOOL=1;
 	public static int CHAR=2;

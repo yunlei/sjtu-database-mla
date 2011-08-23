@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class InsertExp extends Exp{
+public class InsertExp extends Exp implements Serializable{
 	public Symbol name;
 	public ConstValueList constvalue;
 	public SelectExp select;

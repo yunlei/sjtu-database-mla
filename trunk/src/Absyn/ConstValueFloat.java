@@ -1,6 +1,8 @@
 package Absyn;
 
-public class ConstValueFloat extends ConstValue{
+import java.io.Serializable;
+
+public class ConstValueFloat extends ConstValue implements Serializable{
 	/**
 	 * 
 	 */

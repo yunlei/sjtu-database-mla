@@ -1,10 +1,12 @@
 package Absyn;
 
+import java.io.Serializable;
+
 /**
  * @author MaYunlei
  *
  */
-public class ConstValueBoolean extends ConstValue{
+public class ConstValueBoolean extends ConstValue implements Serializable{
 	public boolean flag;
 	public ConstValueBoolean(int p,boolean f)
 	{

@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class OperValue extends Value{
+public class OperValue extends Value implements Serializable{
 
 	public Symbol op;
 	public Value v1;

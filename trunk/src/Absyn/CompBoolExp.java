@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class CompBoolExp extends BoolExp{
+public class CompBoolExp extends BoolExp implements Serializable{
 	public Value v1;
 	public Symbol comp;
 	public Value v2;

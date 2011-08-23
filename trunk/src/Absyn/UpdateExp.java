@@ -1,12 +1,14 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
  * @author MaYunlei
  *
  */
-public class UpdateExp extends Exp{
+public class UpdateExp extends Exp implements Serializable{
 	public Symbol name;
 	public AssignList assign;
 	public BoolExp bool;

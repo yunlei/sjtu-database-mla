@@ -1,6 +1,8 @@
 package Absyn;
 
-public class ConstValueInt  extends ConstValue{
+import java.io.Serializable;
+
+public class ConstValueInt  extends ConstValue implements Serializable{
 	/**
 	 * 
 	 */

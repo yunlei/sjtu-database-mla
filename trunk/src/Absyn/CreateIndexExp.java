@@ -1,5 +1,7 @@
 package Absyn;
 
+import java.io.Serializable;
+
 import Symbol.Symbol;
 
 /**
@@ -8,7 +10,7 @@ import Symbol.Symbol;
  *
  */
  
-public class CreateIndexExp extends CreateExp {
+public class CreateIndexExp extends CreateExp implements Serializable{
 
 	private Symbol index_name;
 	private Symbol table_name;

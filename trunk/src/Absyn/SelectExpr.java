@@ -1,10 +1,12 @@
 package Absyn;
 
+import java.io.Serializable;
+
 /**
  * @author MaYunlei
  *
  */
-public class SelectExpr {
+public class SelectExpr implements Serializable{
 	public Value value;
 	public AsOrNot alias;
 	public SelectExpr next;

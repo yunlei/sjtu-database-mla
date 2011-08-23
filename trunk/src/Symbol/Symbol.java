@@ -17,7 +17,14 @@ public class Symbol implements Serializable{
    * Make return the unique symbol associated with a string.
    * Repeated calls to <tt>symbol("abc")</tt> will return the same Symbol.
    */
-
+  public boolean equals(String s)
+  {
+	  return name.equals(s);
+  }
+  public boolean equals(Symbol s)
+  {
+	  return name.equals(s.toString());
+  }
   public static Symbol symbol(String n) {
 	String u = n.intern();
 	Symbol s = (Symbol)dict.get(u);

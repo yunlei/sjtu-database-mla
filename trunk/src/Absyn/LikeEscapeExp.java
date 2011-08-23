@@ -1,11 +1,13 @@
 package Absyn;
 
+import java.io.Serializable;
+
 
 /**
  * @author MaYunlei
  *
  */
-public class LikeEscapeExp extends BoolExp{
+public class LikeEscapeExp extends BoolExp implements Serializable{
 	public Value value;
 	public boolean like_or_not;
 	public boolean escape_or_not;

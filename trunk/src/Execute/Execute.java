@@ -30,6 +30,36 @@ public class Execute {
 		this.env = env;
 		errorlist=null;
 	}
+	public boolean hasError()
+	{
+		return errorlist!=null;
+	}
+	public void printError()
+	{
+		ErrorList tmp=errorlist;
+		if(tmp==null)
+			return ;
+		System.out.print("*************EXE*****ERROR**********************\n");
+		while(tmp!=null)
+		{
+			System.out.print(tmp.msg);
+			System.out.print("\n");
+			tmp=tmp.next;
+		}
+		System.out.print("*********************ERROR*END******************\n");
+	}
+	public String execute(RelaList list)
+	{
+		if(list==null)
+			return "";
+		Relation  r1=execute(list.first);
+		String str1;
+		if(r1==null)
+			str1="";
+		else
+			str1=r1.results+"\n";			
+		return str1+execute(list.next);		
+	}
 	public void putError(String msg,int loc)
 	{
 		errorlist=new ErrorList(new ErrorMsg( loc,msg),errorlist);
@@ -77,6 +107,8 @@ public class Execute {
 			return execute((Project)r);
 		if(r instanceof RealRelation)
 			return execute((RealRelation)r);
+		if(r instanceof CrossJoin)
+			return execute((CrossJoin)r);
 		}
 		catch(Exception e)
 		{
@@ -149,7 +181,7 @@ public class Execute {
 	}
 	public Relation execute(Sigma sigma) 
 	{
-		AttrList attrlist=sigma.relation.attrlist;
+		AttrList attrlist=this.execute(sigma.relation).attrlist;
 		List<Attr> list=new ArrayList<Attr>();
 		while(attrlist!=null)
 		{
@@ -160,20 +192,21 @@ public class Execute {
 		String result="";
 		for(int i=0;i<rows.length;i++)
 		{
-			BoolExp boolexp=sigma.condition.boolExp;
-			if(boolexp==null||this.calBoolExp(boolexp, list, rows[i].split(",")))
+			
+			if(sigma.condition==null||this.calBoolExp(sigma.condition.boolExp, list, rows[i].split(",")))
 			{
 				result+=rows[i]+";";
 			}			
 		}
 		sigma.attrlist=(AttrList) common.Op.copy(sigma.relation.attrlist);
 		sigma.results=result;
-		return null; 
+		return sigma; 
 	}
 	
 	public Relation execute(Project project) throws Exception
 	{
-		String[] rows=project.sub.results.split(";");
+		Relation sub=this.execute(project.sub);
+		String[] rows=sub.results.split(";");
 		String result="";
 		List<Integer> seq=new ArrayList<Integer>();		
 		SelectExpr select_expr=project.select_expr;
@@ -193,15 +226,26 @@ public class Execute {
 			if(select_expr.value instanceof ColValue)
 			{
 				ColName colname=((ColValue)select_expr.value).name;
-				for(int i=0;i<attrlist1.size();i++)
+				if(colname.col.toString().equals("*"))
 				{
-					if(colname.col.equals(attrlist1.get(i).name))
-					{
-						seq.add(i);
-						tmpAttr=attrlist1.get(i);
-						break;
+					
+					for(int i=0;i<attrlist1.size();i++){
+						outlist1.add(attrlist1.get(i));
+						//seq.add(i);
 					}
-				}				
+					seq.add(-2);
+					break;
+				}
+				else
+					for(int i=0;i<attrlist1.size();i++)
+					{
+						if(colname.col.equals(attrlist1.get(i).name))
+						{
+							seq.add(i);
+							tmpAttr=attrlist1.get(i);
+							break;
+						}
+					}				
 			}
 			else if(select_expr.value instanceof ConstValue)
 			{
@@ -257,7 +301,13 @@ public class Execute {
 					{
 						if(select_expr.value instanceof ColValue)
 						{
-							obs.add(cols[seq.get(j)]);
+							if(((ColValue)select_expr.value).name.col.toString().equals("*")){
+								for(int s=0;s<attrlist1.size();s++){
+									obs.add(cols[s]);
+								} 
+							}
+							else
+								obs.add(cols[seq.get(j)]);
 						}
 						else if(select_expr.value instanceof ConstValue)
 							obs.add(((ConstValue)select_expr.value).getValue());
@@ -359,12 +409,18 @@ public class Execute {
 			Integer max,min,sum,count;
 			for(int i=0;i<rows.length;i++)
 			{
-				String[] cols=rows[i].split(";");
+				String[] cols=rows[i].split(",");
 				select_expr=project.select_expr;
 				for(int j=0;j<seq.size();j++,select_expr=select_expr.next)
 				{
 					if(select_expr.value instanceof ColValue)
-						result1+=cols[seq.get(j)];
+					{
+						if(((ColValue)select_expr.value).name.col.toString().equals("*")){
+							result1+=rows[i].substring(0, rows[i].length()-1);
+						}						
+						else
+							result1+=cols[seq.get(j)];
+					}
 					else if(select_expr.value instanceof ConstValue){
 						result1+=((ConstValue)select_expr.value).getValue();
 					}
@@ -402,7 +458,7 @@ public class Execute {
 				list.add(attrlist.attr);
 				attrlist=attrlist.next;
 			}
-			result+="Field       | Type      | Null | Key | Default           | Extra\n";
+			result+="Field\t| Type\t| Null\t| Key\t|Default\t|Extra\n";
 			for(int i=list.size()-1;i>=0;i--)
 			{
 				Attr attr=list.get(i);
@@ -410,18 +466,22 @@ public class Execute {
 				if(attr.type.type==Type.INT) result+="INT";
 				if(attr.type.type==Type.CHAR) result+="CHAR("+attr.type.size+")";
 				if(attr.type.type==Type.BOOL)result+="BOOLEAN";
-				result+="	|";
+				result+="\t|";
 				if(attr.not_null) result+="not null	|";
 				else result+="null	|";
 				if(attr.key) result+="PRIMARY	|";
 				else result+="	|";
-				result+=attr.defaultValue.getValue();
+				if(attr.defaultValue!=null)
+					result+=attr.defaultValue.getValue();
+				else
+					result+="\t";
 				result+="	|";
 				if(attr.auto_incre)
 					result+="auto-incre";
 				result+="\n";
 				 
 			} 
+			namelist=namelist.next;
 		}
 		des.results=result;
 		return des;		
@@ -458,25 +518,28 @@ public class Execute {
 				return d;
 			}
 			int total=0;
-			long index=0;
+			 
+			int left=0;
+			result="";
+			int colnum=0;
 			for(int i=0;i<rows.length;i++)
 			{
 				String[] cols=rows[i].split(",");
+				colnum=cols.length;
 				if(this.calBoolExp(d.exp, list, cols))
 				{
 					total++;
 				}
 				else {
-					result="";
-					for(int j=0;j<cols.length;j++)
-					{
-						result+=cols[j]+",";
-					}
+					left++;
+					
+					result+=rows[i];
 					result+=";";
-					DBInfo.DbMani.write(env.database, d.name,result,index, totallength+cols.length+1);
-					index+=totallength+cols.length+1;
+					
+					 
 				}
 			}
+			DBInfo.DbMani.write(env.database, d.name,result,0, result.length()+1);//(totallength+colnum+1)*left);
   
 			d.results="success+"+total+"rows affected.";
 			return d;
@@ -484,6 +547,7 @@ public class Execute {
 		catch(Exception e)
 		{
 			putError(e.getMessage(),-1);
+			e.printStackTrace();
 			d.results="error";
 			return d;
 		}
@@ -579,11 +643,11 @@ public class Execute {
 			Attr attr2=null;
 			for(int i=0;i<attrlist.size()&&(ptr1==-1||ptr2==-1);i++)
 			{
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col))
+				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col.toString()))
 				{
 					ptr1=i;attr1=attrlist.get(i);
 				}
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v2).name.col))
+				if(attrlist.get(i).name.equals(((ColValue)compexp.v2).name.col.toString()))
 				{
 					ptr2=i;attr2=attrlist.get(i);
 				}
@@ -612,7 +676,7 @@ public class Execute {
 			Attr attr1=null; 
 			for(int i=0;i<attrlist.size()&&(ptr1==-1 );i++)
 			{
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col))
+				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col.toString()))
 				{
 					ptr1=i;attr1=attrlist.get(i);
 				}
@@ -640,7 +704,7 @@ public class Execute {
 			Attr attr1=null; 
 			for(int i=0;i<attrlist.size()&&(ptr1==-1 );i++)
 			{
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col))
+				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col.toString()))
 				{
 					ptr1=i;attr1=attrlist.get(i);
 				}
@@ -1062,7 +1126,7 @@ public class Execute {
 				if(!flag)
 				{
 					seq.add(-1);
-					if(i.constvalue!=null)
+					if(attr.defaultValue!=null)
 					{	ConstValue constvalue=attr.defaultValue;
 						 
 						if(attr.type.type==Type.BOOL)
@@ -1085,6 +1149,11 @@ public class Execute {
 						} 
 						result+=","; 
 					}
+					else if(attr.not_null){
+						putError("insert value:"+attr.name+" should be null",-1);
+					}
+					else
+						result+="null,";
 				}
 				else
 				{
@@ -1179,6 +1248,7 @@ public class Execute {
 		{
 			putError(e.getMessage(),-1);
 		}
+		i.results="insert ok.";
 		return i;
 	}
 	public Relation execute(Update u)
@@ -1304,7 +1374,7 @@ public class Execute {
 	{
 		env.database=cdb.dbname;
 		DBInfo.DbMani.createDB(cdb.dbname);
-		cdb.results="create db:"+cdb.dbname+" success.";
+		cdb.results="create database:"+cdb.dbname+" success.";
 		return cdb;
 	}
 	public Relation execute(CreateTable ct)
@@ -1314,8 +1384,13 @@ public class Execute {
 			//write attrlist into file
 			File attrfile=new File(DBInfo.DbMani.rootpath+env.database+"\\"+ct.tableName+".attr");
 			attrfile.createNewFile();
-			ObjectOutputStream ois=new ObjectOutputStream(new FileOutputStream(attrfile));
-			ois.writeObject(ct.attrlist);
+			ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(attrfile));
+			oos.writeObject(ct.attrs);
+			oos.flush();
+			oos.close();
+			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));
+			AttrList list=(AttrList) ois.readObject();
+			
 			DBInfo.DbMani.createNewTableFile(env.database,ct.tableName );
 			ct.results="create table :"+ct.tableName;
 			return ct;

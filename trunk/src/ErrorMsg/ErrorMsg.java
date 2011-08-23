@@ -16,6 +16,10 @@ public class ErrorMsg {
 	public void setLocation(int location) {
 		this.location = location;
 	}
+	public String toString()
+	{
+		return "ERROR("+this.location+"):"+msg;
+	}
 	
 	
 }

@@ -3,8 +3,10 @@ package DBInfo;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
 
 import Absyn.SelectExp;
@@ -33,6 +35,54 @@ public class DbMani {
 			
 		}
 	}
+	public static void addIndexInfo(String database,String tablename,String col)
+	{
+		IndexList list=getIndexList(database);
+		if(list==null)
+			list=new IndexList();
+		list.add(new Index(database,tablename,col));
+		putIndexList(database,list);
+	}
+	public static void putIndexList(String database,IndexList il)
+	{
+		File file=new File(rootpath+database+"\\index.list");
+		
+		try {
+			if(!file.exists())
+				file.createNewFile();
+			ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			oos.writeObject(il);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	public static IndexList getIndexList(String database )
+	{
+		File file=new File(rootpath+database +"\\index.list");
+		if(!file.exists())
+			return null;
+		ObjectInputStream ois;
+		try {
+			 ois = new ObjectInputStream(new FileInputStream(file)); 
+			 IndexList list=(IndexList) ois.readObject();
+			return list;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) { 
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+		
+	}
 	public static long getfilesize(String database,String tablename)
 	{
 		File file = new File(rootpath+database+"\\"+tablename+".data");
@@ -41,6 +91,7 @@ public class DbMani {
 	public static String read(String name, int index, int num) {
 		byte[] b = null;
 		File file = new File(name);
+		int total=0;
 		if(!file.exists())
 			return null;
 		try {
@@ -48,21 +99,20 @@ public class DbMani {
 			if(num >= 0) {
 				b = new byte[num];
 				rFile.seek(index);
-				rFile.read(b);
+				total=rFile.read(b);
 			} else {
 				b = new byte[1024];
 				rFile.seek(index);
-				rFile.read(b);
+				total=rFile.read(b);
 			}
 			rFile.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return new String(b);		
+		return new String(b,0,total);		
 	}
 	public static String readFile(String database,String tablename)
-	{
-		
+	{ 
 		try {
 			File file=new File(rootpath+database+"\\"+tablename+".data");
 			FileInputStream fis=new FileInputStream(file);
@@ -71,9 +121,9 @@ public class DbMani {
 			int size;
 			do{
 			size=fis.read(bytes);
-			bytes[size+1]='\0';
 			result+=new String(bytes,0,size);
 			}while(size==1024);
+			fis.close();
 			return result;
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -96,7 +146,7 @@ public class DbMani {
 			if(!file.exists())
 				file.createNewFile();
 			RandomAccessFile rFile = new RandomAccessFile(file, "rw");
-			b = content.getBytes();
+		//	b = content.getBytes();
 			rFile.seek(length);
 			rFile.writeBytes(content);
 			rFile.close();

@@ -7,6 +7,8 @@ import java.io.ObjectInputStream;
 import Absyn.*;
 import Alge.*;
  
+import DBInfo.Index;
+import DBInfo.IndexList;
 import DBInfo.View;
 import DBInfo.ViewList;
 import ErrorMsg.ErrorList;
@@ -286,7 +288,7 @@ public class Semant{
 				AttrList tmplist=attrlist;
 				while(tmplist!=null)
 				{
-					if(tmplist.attr.name.equals(colname.col))
+					if(tmplist.attr.name.equals(colname.col.toString()))
 					{
 						flag=true;
 						break;
@@ -320,7 +322,7 @@ public class Semant{
 				while(tmpAttrlist!=null)
 				{
 					Attr attr=tmpAttrlist.attr;
-					if(attr.name!=null||attr.name.equals(colname.col))
+					if(attr.name!=null||attr.name.equals(colname.col.toString()))
 					{
 						flag=true;
 						break;
@@ -374,30 +376,8 @@ public class Semant{
 				}
 				else
 				{
-					CrossJoin u=(CrossJoin)table;
-					boolean flag=false;
-					while(u!=null&&!flag)
-					{
-						if(colname.table==null||colname.table.equals("")||colname.table.equals(u.tablename)
-								||(u.asname!=null&&colname.table.equals(u.asname)))
-						{ 
-							AttrList attlist=u.leftR.attrlist;							
-							while(attlist!=null)
-							{
-								if(attlist.attr.name.equals(colname.col))
-								{
-									flag=true;
-									break;
-								}
-								attlist=attlist.next;
-							}
-						}
-						u=u.next;
-					}
-					if(!flag)
-					{
-						putError("colname not found:"+colname.col,s.pos);
-					}
+					 if(!this.colNameInCrossUnion(colname, (CrossJoin)table,s.pos))
+						 return null;
 				}
 			} 
 			select_expr=select_expr.next;
@@ -409,7 +389,7 @@ public class Semant{
 			{
 				ColName colname=colnamelist.name;
 				CrossJoin u=(CrossJoin)table;
-				if(!colNameInCrossUnion(colname,u))
+				if(!colNameInCrossUnion(colname,u,s.pos))
 					return null;
 				colnamelist=colnamelist.next;
 			}
@@ -421,14 +401,14 @@ public class Semant{
 			{
 				ColName colname=orderlist.col;
 				CrossJoin u=(CrossJoin)table;
-				if(!colNameInCrossUnion(colname,u))
+				if(!colNameInCrossUnion(colname,u,s.pos))
 					return null;			
 				orderlist=orderlist.next;
 			}
 		}
 		//check group list;
 		
-		if(s.groupclause!=null&&!colNameInCrossUnion(s.groupclause.name,(CrossJoin)table))
+		if(s.groupclause!=null&&!colNameInCrossUnion(s.groupclause.name,(CrossJoin)table,s.pos))
 			return null;
 		//check having list;
 		if (s.havingclause != null) {
@@ -436,7 +416,7 @@ public class Semant{
 			while (colnamelist != null) {
 				ColName colname = colnamelist.name;
 				CrossJoin u = (CrossJoin) table;
-				if (!colNameInCrossUnion(colname, u))
+				if (!colNameInCrossUnion(colname, u,s.pos))
 					return null;
 				colnamelist = colnamelist.next;
 			}
@@ -448,6 +428,8 @@ public class Semant{
 		}
 		else
 			result=new Sigma(null,table);
+		
+		
 		if(s.groupclause==null)
 			result=new Project(s.selectexpr,result,null,null);
 		else if(s.havingclause==null)
@@ -458,6 +440,8 @@ public class Semant{
 			result=new Order(result,s.orderclause.orderlist);
 		if(s.distinct_or_not!=null)
 			result=new Gamma(result);
+		Execute.Execute exe=(new Execute.Execute(env));
+		result=exe.execute(result);
 		return result;
 	}
 	public boolean checkDB(Exp e)
@@ -473,31 +457,30 @@ public class Semant{
 		}
 		return true;
 	}
-	public boolean colNameInCrossUnion(ColName colname,CrossJoin u)
+	public boolean colNameInCrossUnion(ColName colname,CrossJoin u,int pos)
 	{
 		boolean flag=false;
 		while(u!=null&&!flag)
-		{
-			if(colname.table==null||colname.table.equals("")||colname.table.equals(u.tablename)
-					||(u.asname!=null&&colname.table.equals(u.asname)))
+		{ 
 			{ 
 				AttrList attlist=u.leftR.attrlist;							
 				while(attlist!=null)
 				{
-					if(attlist.attr.name.equals(colname.col))
+					if((colname.table==null||colname.table.equals("")||
+							colname.table.toString().equals(attlist.attr.tableName))
+							&&attlist.attr.name.equals(colname.col.toString()))
 					{
 						flag=true;
 						break;
 					}
-					attlist=attlist.next;
-					
+					attlist=attlist.next; 
 				}
 			}
 			u=u.next;
 		}
 		if(!flag)
 		{
-			putError("colname not found  in the where clause:"+colname.col,-1);
+			putError("colname not found:"+colname.table+"."+colname.col,pos);
 		}			
 		return flag;
 	}
@@ -561,14 +544,38 @@ public class Semant{
 		if(tl.tableref.subquery!=null)
 		{
 			r1=transExp(tl.tableref.subquery);
+			AttrList attrlist=r1.attrlist;
+//			while(attrlist!=null)
+//			{
+//				attrlist.attr.tableName=tl.tableref.asname.toString();
+//			}
 		}
 		if(tl.tableref.asname!=null)
 		{
-			r1.asname=tl.tableref.asname.toString();
+			//r1.asname=tl.tableref.asname.toString();
+			//change the table name of attr of r1 to the asname;
+			AttrList tmplist=r1.attrlist;
+			while(tmplist!=null){
+				tmplist.attr.tableName=tl.tableref.asname.toString();
+				tmplist=tmplist.next;
+			}
 		} 
 		CrossJoin next=transFrom(tl.next);
-		u=new CrossJoin(tl.tableref.name.toString(),r1,next);
-		 
+		u=new CrossJoin(r1,next);
+		AttrList llist = null,rlist = null;
+		if(u.leftR!=null&&u.leftR.attrlist!=null)
+			llist=(AttrList) common.Op.copy(u.leftR.attrlist);
+		if(u.next!=null&&u.next.attrlist!=null)
+			rlist=(AttrList) common.Op.copy(u.next.attrlist);
+		 u.attrlist=llist;
+		if(u.attrlist==null)
+			u.attrlist=rlist;
+		else{
+			AttrList tmplist=u.attrlist;
+			while(tmplist.next!=null)
+				tmplist=tmplist.next;
+			tmplist.next=rlist;
+		}
 		return u;
 	}
 
@@ -754,9 +761,9 @@ public class Semant{
 						key=true;
 					else 
 						key=false;
-					Attr att=new Attr(cd.name.toString(),type,not_null,defaultValue,auto_incre,key);
+					Attr att=new Attr(cte.name.toString(),cd.name.toString(),type,not_null,defaultValue,auto_incre,key);
 					AttrList tmpList=list;
-					 
+					
 					while(tmpList!=null)
 					{
 						if(tmpList.attr.name.equals(att.name))
@@ -878,13 +885,25 @@ public class Semant{
 			/*need to check select ,which need to be implemented latter*/
 			Relation relation=transExp(cve.select);
 			if(relation==null)
+			{
+				putError("create view error:(select exp not ok)",ce.pos);
 				return null;
+			}
 			return new CreateView(cve.name.toString(),cve.select);
 		}
 		if(ce instanceof CreateIndexExp)
 		{
 			CreateIndexExp cie=(CreateIndexExp)ce;
 			AttrList list=DBInfo.DbMani.getAttriList(env.database,cie.getTable_name().toString());
+			IndexList indexlist=DBInfo.DbMani.getIndexList(env.database);
+			for(int i=0;indexlist!=null&&i<indexlist.size();i++)
+			{
+				 if(indexlist.get(i).table.equals(cie.getTable_name())
+						 &&indexlist.get(i).col.equals(cie.getIndex_name())){
+					  putError("index has already been decleared",cie.pos);
+					  return null;
+				 } 
+			}
 			while(list!=null)
 			{
 				if(list.attr.name.equals(cie.getCol_name().toString()))

@@ -19,6 +19,7 @@ import DBInfo.View;
 import DBInfo.ViewList;
 import ErrorMsg.ErrorList;
 import ErrorMsg.ErrorMsg;
+import Index.HashIndex;
 import Symbol.Symbol;
 import semant.Env;
 import semant.Semant;
@@ -92,7 +93,7 @@ public class Execute {
 		if(r instanceof Delete)
 			return execute((Delete)r);
 		if(r instanceof Drop)
-			return execute((Delete)r);
+			return execute((Drop)r);
 		if(r instanceof Insert)
 			return execute((Insert)r);
 		if(r instanceof UseDB)
@@ -155,8 +156,9 @@ public class Execute {
 			String leftrow=leftrows[i];
 			for(int j=0;j<rightrows.length;j++)
 			{
-				result+=leftrow+rightrows[j];
+				result+=leftrow+rightrows[j]+";";
 			}
+			
 		}
 		crossjoin.results=result;
 		AttrList llist = null,rlist = null;
@@ -227,8 +229,7 @@ public class Execute {
 			{
 				ColName colname=((ColValue)select_expr.value).name;
 				if(colname.col.toString().equals("*"))
-				{
-					
+				{ 
 					for(int i=0;i<attrlist1.size();i++){
 						outlist1.add(attrlist1.get(i));
 						//seq.add(i);
@@ -906,9 +907,9 @@ public class Execute {
 			return x=Integer.valueOf(values[ptr]);
 		}else if(v instanceof ConstValueInt)
 		{
-			return x=((ConstValueInt)v).value;
+			return  ((ConstValueInt)v).value;
 		}else if(v instanceof OperValue)
-			return x=getOpValue((OperValue)v,attrlist,values);
+			return  getOpValue((OperValue)v,attrlist,values);
 		 putError("unknow error.(inget int value)",-1);
 		 return -1;
 	}
@@ -1108,7 +1109,7 @@ public class Execute {
 				attrlist1=attrlist1.next;
 			}
 			for(int mmm=attrarray.size()-1;mmm>=0;mmm--)
-			{ 
+			{
 				Attr attr=attrarray.get(mmm);//=attrlist1.attr;
 				int ptr=0;
 				NameList namelist=i.namelist;
@@ -1150,7 +1151,8 @@ public class Execute {
 						result+=","; 
 					}
 					else if(attr.not_null){
-						putError("insert value:"+attr.name+" should be null",-1);
+						putError("insert value:"+attr.name+" shouldnot be null",-1);
+						return null;
 					}
 					else
 						result+="null,";
@@ -1200,7 +1202,7 @@ public class Execute {
 					String[] cols=rows[j].split(",");
 					if(cols.length<seq.size())
 						break;
-					for(int s=seq.size()-1;s>=0;s--)
+					for(int s=0;s<seq.size();s++)
 					{
 						if(seq.get(s)==-1)//use default
 						{
@@ -1224,12 +1226,14 @@ public class Execute {
 								}
 								result+=tmp;
 							} 
-							result+=","; 
+							
 						}
 						else{
 							result+=cols[seq.get(s)];
 						}
+						result+=","; 
 					}
+					result+=";";
 				}
 				DBInfo.DbMani.write(env.database, i.tablename,result, length,(totallength+attrarray.size()+1)*rows.length);
 			}
@@ -1368,6 +1372,26 @@ public class Execute {
 	}
 	public Relation execute(CreateIndex ci)
 	{ 
+		//create index indexname on table (col)
+		String [] rows=DBInfo.DbMani.readFile(env.database,ci.table_name).split(";");
+		HashIndex hashIndex=new HashIndex(env.database,ci.table_name,ci.col_name,ci.index_name);
+		AttrList attrlist=DBInfo.DbMani.getAttriList(env.database,ci.table_name);
+		AttrList tmplist=attrlist;
+		int ptr=-1;
+		while(tmplist!=null)
+		{
+			ptr++;
+			if(tmplist.attr.name.equals(ci.col_name)){
+				break;
+			}
+			tmplist=tmplist.next;
+		}
+		for(int i=0;i<rows.length;i++)
+		{
+			hashIndex.addPos(rows[ptr], new Integer(i));
+		}
+		hashIndex.putData();
+		DBInfo.DbMani.addIndexInfo(env.database, ci.table_name, ci.col_name);
 		return ci; 
 	}
 	public Relation execute(CreateDB cdb)
@@ -1388,8 +1412,8 @@ public class Execute {
 			oos.writeObject(ct.attrs);
 			oos.flush();
 			oos.close();
-			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));
-			AttrList list=(AttrList) ois.readObject();
+	//		ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));
+//			AttrList list=(AttrList) ois.readObject();
 			
 			DBInfo.DbMani.createNewTableFile(env.database,ct.tableName );
 			ct.results="create table :"+ct.tableName;

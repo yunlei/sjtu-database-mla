@@ -10,7 +10,7 @@ import Symbol.Symbol;
  */
 public class OrderList implements Serializable{
 	public ColName col;
-	Symbol asc_desc;
+	public Symbol asc_desc;
 	public OrderList next;
 	public OrderList(ColName c,Symbol ad,OrderList n)
 	{

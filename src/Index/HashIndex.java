@@ -1,5 +1,6 @@
 package Index;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -17,6 +18,24 @@ public class HashIndex
 	public String col;
 	public String indexname;
 	public IndexMap hash; 
+	public String getTable() {
+		return table;
+	}
+	public void setTable(String table) {
+		this.table = table;
+	}
+	public String getCol() {
+		return col;
+	}
+	public void setCol(String col) {
+		this.col = col;
+	}
+	public String getIndexname() {
+		return indexname;
+	}
+	public void setIndexname(String indexname) {
+		this.indexname = indexname;
+	}
 	public HashIndex(String database, String table, String col,
 			String indexname, IndexMap hash) {
 		this.database = database;
@@ -24,6 +43,13 @@ public class HashIndex
 		this.col = col;
 		this.indexname = indexname;
 		this.hash = hash;
+	}
+	public boolean hasHash(){
+		File file=new File("DBInfo.DbMani.rootpath+this.database"+
+					"\\"+this.table+".index");
+		if(file.exists())
+			return true;
+		return false;
 	}
 	public HashIndex(String database, String table, String col,
 			String indexname ) {
@@ -65,7 +91,7 @@ public class HashIndex
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}		
+		}
 	}
 	
 	public void addPos(Object key,Object o)
@@ -89,7 +115,13 @@ public class HashIndex
 				break;
 			}			
 		}
-		this.hash.put(key, list);
+		if(list.size()==0)
+			this.hash.remove(key);
+		else 
+			this.hash.put(key, list);
+	}
+	public boolean hasKey(Object key){
+		return this.hash.containsKey(key);
 	}
 	public boolean containPos(Object key,Object o)
 	{

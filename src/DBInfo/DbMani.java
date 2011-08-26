@@ -35,6 +35,99 @@ public class DbMani {
 			
 		}
 	}
+	public static boolean checkUser(String name,String pw){
+		File file = new File(rootpath + "system" + "\\user.list");
+
+		try {
+			if (!file.exists())
+				return false;
+			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
+					file));
+			UserList userlist = (UserList) ois.readObject();
+			if (userlist == null)
+				return false;
+			
+			ois.close();
+			for(int i=0;i<userlist.size();i++){
+				if(userlist.get(i).username.equals(name)&&
+						userlist.get(i).password.equals(pw))
+					return true;
+			}
+			return false;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false; 
+	}
+	public static void deleteUser(String name,String pw){
+		File file = new File(rootpath + "system" + "\\user.list");
+
+		try {
+			if (!file.exists())
+				 return ;
+			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
+					file));
+			UserList userlist = (UserList) ois.readObject();
+			if (userlist == null)
+				return ;
+			
+			ois.close();
+			for(int i=0;i<userlist.size();i++){
+				if(userlist.get(i).username.equals(name)&&
+						userlist.get(i).password.equals(pw))
+					userlist.remove(i);
+			}
+			 ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			 oos.writeObject(userlist);
+			 oos.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	public static void addUser(String name,String pw){
+		File file=new File(rootpath+"system"+"\\user.list");
+		
+		try {
+			UserList userlist = null;
+			if(!file.exists())
+				file.createNewFile();
+			
+			else{ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file));  
+			 userlist=(UserList) ois.readObject();
+			 ois.close();
+			 }
+			 if(userlist==null)
+				 userlist=new UserList();
+			 userlist.add(new UserInfo(name,pw));
+			 
+			 ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			 oos.writeObject(userlist);
+			 oos.close();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace(); 
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	public static void addIndexInfo(String database,String tablename,String col)
 	{
 		IndexList list=getIndexList(database);
@@ -42,6 +135,21 @@ public class DbMani {
 			list=new IndexList();
 		list.add(new Index(database,tablename,col));
 		putIndexList(database,list);
+	}
+	public static void removeIndexInfo(String database,String tablename,String col){
+		IndexList indexlist=getIndexList(database);
+		if(indexlist==null)
+			indexlist=new IndexList();
+		for(int i=0;i<indexlist.size();i++){
+			Index index=indexlist.get(i);
+			if(index.table.equals(tablename)
+					&&index.col.equalsIgnoreCase(col)){
+				indexlist.remove(i); 
+				i--;
+			}
+		}
+		//list.add(new Index(database,tablename,col));
+		putIndexList(database,indexlist);
 	}
 	public static void putIndexList(String database,IndexList il)
 	{
@@ -121,7 +229,10 @@ public class DbMani {
 			int size;
 			do{
 			size=fis.read(bytes);
-			result+=new String(bytes,0,size);
+			if(size<0)
+				result+="";
+			else
+				result+=new String(bytes,0,size);
 			}while(size==1024);
 			fis.close();
 			return result;
@@ -137,6 +248,9 @@ public class DbMani {
 	public static void delteFile(String database,String tablename) {
 		File file=new File(rootpath+database+"\\"+tablename+".data");
 		file.delete();
+	}
+	public static void deleteAFile(String subpath){
+		File file=new File(rootpath+subpath);
 	}
 	public static void write(String database,String tablename,String content,long length,long l)
 	{
@@ -173,6 +287,50 @@ public class DbMani {
 		 
 		
 	}
+	public static ViewList getViewList(String db){
+		File file=new File(DBInfo.DbMani.rootpath+db+"\\view.list");
+		ViewList viewlist=null;
+		if(!file.exists())
+		{	
+				return null;			
+		}
+		else
+		{
+			ObjectInputStream ois;
+			try {
+				ois = new ObjectInputStream(new FileInputStream(file));
+				viewlist=(ViewList)ois.readObject();
+				ois.close();
+			} catch (FileNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) { 
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}
+		return viewlist;
+	}
+	public static void putViewList(String db,ViewList vl){
+		File file=new File(rootpath+db+"\\index.list");
+		
+		try {
+			if(!file.exists())
+				file.createNewFile();
+			ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			oos.writeObject(vl);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	public  static Alge.AttrList getAttriList(String db,String table)
 	{
 		try{
@@ -191,6 +349,13 @@ public class DbMani {
 	}
 	public static SelectExp getViewDef(String db,String table)
 	{
+		ViewList viewlist=getViewList(db);
+		while(viewlist!=null){
+			if(viewlist.view.name.equalsIgnoreCase(table)){
+				return viewlist.view.select;
+			}
+			viewlist=viewlist.next;
+		}
 		return null;
 	}
 	

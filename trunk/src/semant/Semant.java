@@ -135,7 +135,29 @@ public class Semant{
 		if(e instanceof DropIndexExp)
 		{
 			DropIndexExp die=(DropIndexExp)e;
-			putError("drop index not implement.",e.pos);
+			//
+			File file=new File(DBInfo.DbMani.rootpath+env.database+"\\"+die.tablename.toString()+".index");
+			if(!file.exists()){
+				putError("index for table:"+die.tablename+" not found.",die.pos);
+				return null;
+			}
+			IndexList indexlist=DBInfo.DbMani.getIndexList(env.database);
+			boolean flag=false;
+			for(int i=0;i<indexlist.size();i++){
+				if(indexlist.get(i).table.equals(die.tablename.toString())
+						&&indexlist.get(i).col.equalsIgnoreCase(die.indexname.toString()))
+				{
+					flag=true;
+					break;
+				}
+			}
+			if(!flag)
+			{
+				putError("index for table:"+die.tablename+" with name:"+die.indexname+" not found.",die.pos);
+				return null;
+			}
+			return new Drop(Drop.DROPINDEX,die.tablename.toString(),die.indexname.toString());
+			//putError("drop index not implement.",e.pos);
 		}
 		return null;		
 	}
@@ -436,12 +458,22 @@ public class Semant{
 			result=new Project(s.selectexpr,result,s.groupclause.name,null);
 		else
 			result=new Project(s.selectexpr,result,s.groupclause.name,new Condition(s.havingclause.boolexp));
+		if(this.hasError())
+			return null;
+		Execute.Execute exe=(new Execute.Execute(env));
+		Relation tmpr=exe.execute(result);
+		
+		if(tmpr!=null)
+			result.attrlist=(AttrList) common.Op.copy(tmpr.attrlist);
 		if(s.orderclause!=null)
 			result=new Order(result,s.orderclause.orderlist);
 		if(s.distinct_or_not!=null)
+		{
 			result=new Gamma(result);
-		Execute.Execute exe=(new Execute.Execute(env));
-		result=exe.execute(result);
+			result.attrlist=(AttrList) common.Op.copy(((Gamma)result).sub.attrlist);
+		}
+		
+		
 		return result;
 	}
 	public boolean checkDB(Exp e)
@@ -730,6 +762,7 @@ public class Semant{
 			}
 			list=null;
 			CreateElementList el=cte.element;
+			int keynum=0;
 			while(el!=null)
 			{
 				CreateElement cre=el.first;
@@ -758,7 +791,16 @@ public class Semant{
 					else auto_incre=false;
 					boolean key;
 					if(cd.key_or_not!=null)
+					{
 						key=true;
+						if(keynum!=0){
+							putError("only one colum can be a key.",ce.pos);
+							return null;
+						}
+						keynum++;						
+						//add key list;
+						
+					}
 					else 
 						key=false;
 					Attr att=new Attr(cte.name.toString(),cd.name.toString(),type,not_null,defaultValue,auto_incre,key);
@@ -883,6 +925,13 @@ public class Semant{
 		{
 			CreateViewExp cve=(CreateViewExp)ce;
 			/*need to check select ,which need to be implemented latter*/
+			ViewList viewlist=DBInfo.DbMani.getViewList(env.database);
+			while(viewlist!=null){
+				if(viewlist.view.name.equals(cve.name.toString())){
+					putError("create view error:a view with the name:"+cve.name+" has already exists.",cve.pos);
+					return null;
+				}
+			}
 			Relation relation=transExp(cve.select);
 			if(relation==null)
 			{
@@ -896,6 +945,11 @@ public class Semant{
 			CreateIndexExp cie=(CreateIndexExp)ce;
 			AttrList list=DBInfo.DbMani.getAttriList(env.database,cie.getTable_name().toString());
 			IndexList indexlist=DBInfo.DbMani.getIndexList(env.database);
+			File file=new File(DBInfo.DbMani.rootpath+cie.getTable_name()+".index");
+			if(file.exists()){
+				putError("a index for table:"+cie.getTable_name()+" has already been decleared.",cie.pos);
+				return null;
+			}
 			for(int i=0;indexlist!=null&&i<indexlist.size();i++)
 			{
 				 if(indexlist.get(i).table.equals(cie.getTable_name())

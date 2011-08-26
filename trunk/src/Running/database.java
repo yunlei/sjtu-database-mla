@@ -24,7 +24,7 @@ public class database {
 			Lexer lexer=new Lexer(input);
 			SymbolFactory sf=new DefaultSymbolFactory();
 			AdvancedParser parser=new AdvancedParser(lexer,sf);
-		
+			DBInfo.DbMani.addUser("admin", "admin");
 			Exp result=(Exp) parser.parse().value; 
 			print.printExp(result);
 			Env env=new Env("myl",null);

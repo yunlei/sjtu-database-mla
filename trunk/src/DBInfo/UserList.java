@@ -1,11 +1,8 @@
 package DBInfo;
 
-public class UserList {
-	public UserInfo user;
-	public UserList next;
-	public UserList(UserInfo user, UserList next) {
-		this.user = user;
-		this.next = next;
-	}
-	
+import java.io.Serializable;
+import java.util.ArrayList;
+
+public class UserList extends ArrayList<UserInfo>implements Serializable{
+	 
 }

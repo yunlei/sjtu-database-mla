@@ -1,6 +1,8 @@
 package DBInfo;
 
-public class UserInfo {
+import java.io.Serializable;
+
+public class UserInfo implements Serializable {
 	static int auto_incre_id=0;
 	public int id;
 	public String username;

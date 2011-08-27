@@ -251,6 +251,7 @@ public class DbMani {
 	}
 	public static void deleteAFile(String subpath){
 		File file=new File(rootpath+subpath);
+		file.delete();
 	}
 	public static void write(String database,String tablename,String content,long length,long l)
 	{
@@ -343,6 +344,7 @@ public class DbMani {
 		}
 		catch(Exception e)
 		{
+			e.printStackTrace();
 			return null;
 		}
 		

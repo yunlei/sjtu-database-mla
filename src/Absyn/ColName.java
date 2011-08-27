@@ -21,4 +21,10 @@ public class ColName  implements Serializable{
 		table=new Symbol(s);
 		col=new Symbol(s2);
 	}
+	public String toString(){
+		String str="";
+		if(table!=null&&!table.toString().equals(""))
+			str+=table.toString()+".";
+		return str+col.toString();
+	}
 }

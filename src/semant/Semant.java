@@ -344,7 +344,7 @@ public class Semant{
 				while(tmpAttrlist!=null)
 				{
 					Attr attr=tmpAttrlist.attr;
-					if(attr.name!=null||attr.name.equals(colname.col.toString()))
+					if(attr.name!=null&&attr.name.equals(colname.col.toString()))
 					{
 						flag=true;
 						break;
@@ -462,7 +462,6 @@ public class Semant{
 			return null;
 		Execute.Execute exe=(new Execute.Execute(env));
 		Relation tmpr=exe.execute(result);
-		
 		if(tmpr!=null)
 			result.attrlist=(AttrList) common.Op.copy(tmpr.attrlist);
 		if(s.orderclause!=null)
@@ -616,9 +615,10 @@ public class Semant{
 		if(!(v instanceof ConstValueNull 
 				||(type.type==Type.INT&&( v instanceof ConstValueInt))
 				||(type.type==Type.BOOL&&( v instanceof ConstValueBoolean))
-				||(type.type==Type.CHAR&&( v instanceof ConstValueString))))
+				||(type.type==Type.CHAR&&( v instanceof ConstValueString)))
+				||(type.type==Type.FLOAT&&(v instanceof ConstValueFloat)))
 		{
-			putError("type not compatible",-1);
+			putError("type not compatible:"+this.getType(type.type)+" vs "+this.getType(v),-1);
 			return false;
 		}
 		return true;
@@ -671,9 +671,10 @@ public class Semant{
 				if(!(valuelist.value instanceof ConstValueNull 
 						||(type.type==Type.INT&&(valuelist.value instanceof ConstValueInt))
 						||(type.type==Type.BOOL&&(valuelist.value instanceof ConstValueBoolean))
-						||(type.type==Type.CHAR&&(valuelist.value instanceof ConstValueString))))
+						||(type.type==Type.CHAR&&(valuelist.value instanceof ConstValueString))
+						||(type.type==Type.FLOAT&&(valuelist.value instanceof ConstValueFloat))))
 				{
-					putError("type not compatible",e.pos);
+					putError("type not compatible:"+this.getType(type.type)+" vs "+this.getType(valuelist.value),e.pos);
 					return null;
 				}
 				tmplist=tmplist.next;
@@ -711,7 +712,7 @@ public class Semant{
 				Type type=tmp.attr.type;
 				if(type.type!=selectattr.attr.type.type)
 				{
-					putError("type not compatible",e.pos);
+					putError("type not compatible :"+this.getType(type.type)+" vs "+this.getType(selectattr.attr.type.type),e.pos);
 					return null;
 				}				
 				tmplist=tmplist.next;
@@ -725,6 +726,28 @@ public class Semant{
 			return new Insert(tablename,namelist,sele);
 		}
 			 
+	}
+	public String getType(int t){
+		if(t==Type.BOOL)
+			return "bool";
+		if(t==Type.CHAR)
+			return "String";
+		if(t==Type.INT)
+			return "int";
+		if(t==Type.FLOAT)
+			return "float";
+		return "unknown type";
+	}
+	public String getType(ConstValue cv){
+		if(cv instanceof ConstValueInt)
+			return "int";
+		if(cv instanceof ConstValueBoolean)
+			return "bool";
+		if(cv instanceof ConstValueFloat)
+			return "float";
+		if(cv instanceof ConstValueString)
+			return "String";
+		return "unknown type of const value:"+cv.getValue();
 	}
 	public RelaList transSQLs(SQLList e)
 	{ 
@@ -771,10 +794,12 @@ public class Semant{
 					ColumnDefinition cd=(ColumnDefinition)cre;
 					Type type = null;
 					if(cd.type instanceof NameTy){
-						if( ((NameTy)cd.type).ty.toString().equals("int"))
+						if( ((NameTy)cd.type).ty.toString().equalsIgnoreCase("int"))
 							type=new Type(Type.INT);
-						else if(((NameTy)cd.type).ty.toString().equals("boolean"))
+						else if(((NameTy)cd.type).ty.toString().equalsIgnoreCase("boolean"))
 							type=new Type(Type.BOOL);
+						else if(((NameTy)cd.type).ty.toString().equalsIgnoreCase("float"))
+							type=new Type(Type.FLOAT);
 					} 
 					else if( cd.type instanceof ArrayTy)
 					{
@@ -952,8 +977,8 @@ public class Semant{
 			}
 			for(int i=0;indexlist!=null&&i<indexlist.size();i++)
 			{
-				 if(indexlist.get(i).table.equals(cie.getTable_name())
-						 &&indexlist.get(i).col.equals(cie.getIndex_name())){
+				 if(indexlist.get(i).table.equals(cie.getTable_name().toString())
+						 &&indexlist.get(i).col.equals(cie.getIndex_name().toString())){
 					  putError("index has already been decleared",cie.pos);
 					  return null;
 				 } 

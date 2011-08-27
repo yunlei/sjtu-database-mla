@@ -1147,7 +1147,7 @@ private java_cup.runtime.Symbol nextToken(int kind){
 					case -63:
 						break;
 					case 63:
-						{ return nextToken(sym.FLOATVALUE,new Float(yytext())); }
+						{ return nextToken(sym.FLOATVALUE,Double.valueOf((yytext()))); }
 					case -64:
 						break;
 					case 64:

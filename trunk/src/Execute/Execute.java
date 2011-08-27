@@ -63,18 +63,23 @@ public class Execute {
 			str1="";
 		else
 		{ 
-			if(r1 instanceof Project)
+			if(r1 instanceof Project||
+					(r1 instanceof Gamma)||
+					r1 instanceof Order
+					||r1 instanceof Sigma
+					||r1 instanceof Gamma)
 			{
+				String str2="";
 				AttrList attrlist=r1.attrlist;
 				while(attrlist!=null){
-					str1+=attrlist.attr.name+',';
+					str2+=attrlist.attr.name+',';
 					attrlist=attrlist.next;
 				}
+				str2+="\n";
+				str1=str2+r1.results+"\n";
 			}
-			str1=r1.results+"\n";
-			if(r1 instanceof Gamma){
-				
-			}
+			
+			 
 		}
 		
 		return str1+execute(list.next);		
@@ -243,6 +248,7 @@ public class Execute {
 				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".data");
 				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".attr");
 				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".index");
+				namelist=namelist.next;
 			}
 			drop.results="table:"+drop.name+" been deletedd";
 		}
@@ -377,6 +383,7 @@ public class Execute {
 			attrlist1.add(attrlist.attr);
 			attrlist=attrlist.next;
 		}
+		List<String> asname=new ArrayList<String>();
 		while(select_expr!=null)
 		{
 			Attr tmpAttr = null;
@@ -406,7 +413,7 @@ public class Execute {
 			else if(select_expr.value instanceof ConstValue)
 			{
 				seq.add(-1);
-				tmpAttr=new Attr("",null,false,null,false,false);
+				tmpAttr=new Attr("constvalue",null,false,null,false,false);
 			}
 			else if(select_expr.value instanceof FuncValue)
 			{
@@ -425,6 +432,9 @@ public class Execute {
 			}
 			else
 				throw new Exception("uknow type in select expr");
+			if(select_expr.alias!=null){
+				tmpAttr.name=select_expr.alias.name.toString();
+			}
 			outlist1.add(tmpAttr);
 			select_expr=select_expr.next;
 		}
@@ -637,6 +647,7 @@ public class Execute {
 				if(attr.type.type==Type.INT) result+="INT";
 				if(attr.type.type==Type.CHAR) result+="CHAR("+attr.type.size+")";
 				if(attr.type.type==Type.BOOL)result+="BOOLEAN";
+				if(attr.type.type==Type.FLOAT) result+="FLOAT";
 				result+="\t|";
 				if(attr.not_null) result+="not null	|";
 				else result+="null	|";
@@ -805,18 +816,10 @@ public class Execute {
 	}
 	public boolean calBoolExp(CompBoolExp compexp,List<Attr> attrlist,String [] values)
 	{
-		/**
-		 * 1 op 1||t op t1|| t op 1|| 1 op t|| || max()op 1|| 1 op max || str op str 
-		 */
-		int type1;
-		int type2;
 		int vi1;
 		int vi2;
-		String vs1;
-		String vs2;
 		if(compexp.v1 instanceof ConstValueInt && compexp.v2 instanceof ConstValueInt)
 		{
-			type1=Type.INT;
 			vi1=((ConstValueInt)compexp.v1).value;
 			vi2=((ConstValueInt)compexp.v2).value;
 			return this.valueComp(vi1,compexp.comp,vi2);
@@ -826,20 +829,25 @@ public class Execute {
 			Attr attr1=null;
 			int ptr2=-1;
 			Attr attr2=null;
+			ColValue cv1=(ColValue)compexp.v1,cv2=(ColValue)compexp.v2;
 			for(int i=0;i<attrlist.size()&&(ptr1==-1||ptr2==-1);i++)
 			{
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col.toString()))
-				{
+				if(attrlist.get(i).name.equals(cv1.name.col.toString())
+						&&(cv1.name.table==null||cv1.name.table.toString().equals("")
+								||attrlist.get(i).tableName.equals(cv1.name.table.toString())))
+		 		{
 					ptr1=i;attr1=attrlist.get(i);
 				}
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v2).name.col.toString()))
+				if(attrlist.get(i).name.equals(cv2.name.col.toString())
+						&&(cv1.name.table==null||cv2.name.table.toString().equals("")
+								||attrlist.get(i).tableName.equals(cv2.name.table.toString())))
 				{
 					ptr2=i;attr2=attrlist.get(i);
 				}
 			}
 			if(ptr1==-1||ptr2==-1)
 			{
-				putError("col value not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",-1);
 				return false;
 			}
 			if(attr1.type.type==Type.INT&&attr2.type.type==Type.INT)
@@ -850,25 +858,62 @@ public class Execute {
 			{
 				return this.valueComp(values[ptr1], compexp.comp, values[ptr2]);
 			}
+			else if(attr1.type.type==Type.FLOAT&&attr2.type.type==Type.FLOAT){
+				return this.valueComp(Double.valueOf(values[ptr1]), compexp.comp, Double.valueOf(values[ptr2]));
+			}				
 			else {
-				putError("col value type not compatible.",-1);
+				putError("col value type not compatible:"+attr1.type.type+" vs "+attr2.type.type,-1);
 				return false;
 			} 
 		}
-		else if(compexp.v1 instanceof ColValue  && compexp.v2 instanceof ConstValueInt )
+		else if(compexp.v1 instanceof ColValue  && compexp.v2 instanceof ConstValueFloat )
 		{
 			int ptr1=-1;
 			Attr attr1=null; 
+			ColValue cv1=(ColValue)compexp.v1 ;
 			for(int i=0;i<attrlist.size()&&(ptr1==-1 );i++)
 			{
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col.toString()))
+				if(attrlist.get(i).name.equals(cv1.name.col.toString())
+						&&(cv1.name.table==null||cv1.name.table.toString().equals("")
+								||attrlist.get(i).tableName.equals(cv1.name.table.toString())))
 				{
 					ptr1=i;attr1=attrlist.get(i);
 				}
 			}
 			if(ptr1==-1 )
 			{
-				putError("col value not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",-1);
+				return false;
+			}
+			if(attr1.type.type!=Type.FLOAT)
+			{
+				putError("col value:"+compexp.v2.toString()+" not a float (const value is a float num).",-1);
+				return false;
+			}
+			return this.valueComp(Double.valueOf(values[ptr1]), compexp.comp, ((ConstValueFloat)compexp.v2).value);
+		}
+		else if(compexp.v2 instanceof ColValue  && compexp.v1 instanceof ConstValueInt )
+		{
+			CompBoolExp boolexp=new CompBoolExp(compexp.v2,compexp.comp,compexp.v1);
+			return !this.calBoolExp(boolexp, attrlist, values);
+		}
+		else if(compexp.v1 instanceof ColValue  && compexp.v2 instanceof ConstValueInt )
+		{
+			int ptr1=-1;
+			Attr attr1=null; 
+			ColValue cv1=(ColValue)compexp.v1 ;
+			for(int i=0;i<attrlist.size()&&(ptr1==-1 );i++)
+			{
+				if(attrlist.get(i).name.equals(cv1.name.col.toString())
+						&&(cv1.name.table==null||cv1.name.table.toString().equals("")
+								||attrlist.get(i).tableName.equals(cv1.name.table.toString())))
+				{
+					ptr1=i;attr1=attrlist.get(i);
+				}
+			}
+			if(ptr1==-1 )
+			{
+				putError("col value:"+cv1.name.toString()+" not found",-1);
 				return false;
 			}
 			if(attr1.type.type!=Type.INT)
@@ -881,22 +926,25 @@ public class Execute {
 		else if(compexp.v2 instanceof ColValue  && compexp.v1 instanceof ConstValueInt )
 		{
 			CompBoolExp boolexp=new CompBoolExp(compexp.v2,compexp.comp,compexp.v1);
-			return this.calBoolExp(boolexp, attrlist, values);
+			return !this.calBoolExp(boolexp, attrlist, values);
 		}
 		else if(compexp.v1 instanceof ColValue  && compexp.v2 instanceof ConstValueString )
 		{
 			int ptr1=-1;
 			Attr attr1=null; 
+			ColValue cv1=(ColValue)compexp.v1 ;
 			for(int i=0;i<attrlist.size()&&(ptr1==-1 );i++)
 			{
-				if(attrlist.get(i).name.equals(((ColValue)compexp.v1).name.col.toString()))
+				if(attrlist.get(i).name.equals(cv1.name.col.toString())
+						&&(cv1.name.table==null||cv1.name.table.toString().equals("")
+								||attrlist.get(i).tableName.equals(cv1.name.table.toString())))
 				{
 					ptr1=i;attr1=attrlist.get(i);
 				}
 			}
 			if(ptr1==-1 )
 			{
-				putError("col value not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",-1);
 				return false;
 			}
 			if(attr1.type.type!=Type.CHAR)
@@ -1012,6 +1060,15 @@ public class Execute {
 		}
 		return true; 
 	}
+	public double getFloatOpValue(OperValue ov,List<Attr> attrlist,String [] values)
+	{
+		double x,y;
+		x=getFloatValue(ov.v1,attrlist,values);
+		y=getFloatValue(ov.v2,attrlist,values);
+		if(x==-1||y==-1)
+			return -1;
+		return this.calFloatOpvalue(x, ov.op.toString(), y);
+	}
 	public int getOpValue(OperValue ov,List<Attr> attrlist,String [] values)
 	{
 		int x,y;
@@ -1049,6 +1106,53 @@ public class Execute {
 		}
 		putError("string value not found.",-1);
 		return null;		
+	}
+	public double getFloatValue(Value v,List<Attr> attrlist,String [] values)
+	{
+		double x;
+		if(v instanceof ColValue||v instanceof FuncValue)
+		{
+			ColName colname=null;
+			if(v instanceof ColValue)
+				colname=( (ColValue)v).name;
+			if(v instanceof FuncValue)
+			{
+				FuncValue fv=(FuncValue)v;
+				String funcname="";
+				funcname+=fv.functy.toString()+"(";
+				if(fv.colname.table!=null)
+					funcname+=fv.colname.table+".";
+				funcname+=fv.colname.col+")";
+				colname=new ColName("",funcname);
+			}
+			Attr attr =null;
+			int ptr=-1;
+			for(int j=0;j<attrlist.size();j++)
+			{
+				if(attrlist.get(j).name.equals(colname.col.toString()))
+				{
+					ptr=j;
+					attr=attrlist.get(j);
+				}
+			}
+			if(ptr==-1)
+			{
+				putError("colname:"+colname.col.toString()+" not found",-1);
+				return -1;
+			}
+			if(attr.type.type!=Type.INT)
+			{
+				putError("value is not a integer",-1);
+				return -1;
+			}
+			return Double.valueOf(values[ptr]);
+		}else if(v instanceof ConstValueFloat)
+		{
+			return  ((ConstValueInt)v).value;
+		}else if(v instanceof OperValue)
+			return  getFloatOpValue((OperValue)v,attrlist,values);
+		 putError("unknow error.(in get int value)",-1);
+		 return -1;
 	}
 	public int getIntValue(Value v,List<Attr> attrlist,String [] values)
 	{
@@ -1094,8 +1198,22 @@ public class Execute {
 			return  ((ConstValueInt)v).value;
 		}else if(v instanceof OperValue)
 			return  getOpValue((OperValue)v,attrlist,values);
-		 putError("unknow error.(inget int value)",-1);
+		 putError("unknow error.(in get int value)",-1);
 		 return -1;
+	}
+	public double calFloatOpvalue(double v1,String op,double v2)
+	{
+		if(op.equals("PLUS"))
+			return v1+v2;
+		if(op.equals("MINUS"))
+			return v1-v2;
+		if(op.equals("TIMES"))
+			return v1*v2;
+		if(op.equals("DIVIDE"))
+			return v1/v2;
+		if(op.equals("MOD"))
+			return v1%v2;		
+		return -1;
 	}
 	public int calOpvalue(int v1,String op,int v2)
 	{
@@ -1108,8 +1226,7 @@ public class Execute {
 		if(op.equals("DIVIDE"))
 			return v1/v2;
 		if(op.equals("MOD"))
-			return v1%v2;
-		
+			return v1%v2;		
 		return -1;
 	}
 	public boolean calBoolExp(AnyExp  anyexp,List<Attr> attrlist,String [] values)
@@ -1265,6 +1382,29 @@ public class Execute {
 				return true; 
 		return false;		
 	}
+	public boolean valueComp(Double v1,Symbol comp,Double v2)
+	{
+		String cop=comp.toString();
+		if(cop.equals("LT")) 
+			if(v1<v2)
+				return true; 
+		if(cop.equals("GT")) 
+			if(v1>v2)
+				return true; 
+		if(cop.equals("EQ")) 
+			if(v1==v2)
+				return true; 
+		if(cop.equals("NEQ")) 
+			if(v1!=v2)
+				return true; 
+		if(cop.equals("LE")) 
+			if(v1<=v2)
+				return true; 
+		if(cop.equals("GE")) 
+			if(v1>=v2)
+				return true; 
+		return false;		
+	}
 	public Relation execute(Insert i)
 	{
 		try{
@@ -1310,8 +1450,11 @@ public class Execute {
 					totallength+=Type.BOOLSIZE;
 				else if(type.type==Type.INT)
 					totallength+=Type.INTSIZE;
+				else if(type.type==Type.FLOAT)
+					totallength+=Type.FLOATSIZE;
 				else if(type.type==Type.CHAR)
 					totallength+=type.size;
+				
 				attrlist1=attrlist1.next;
 			}
 			if(indexpos!=-1){
@@ -1395,16 +1538,14 @@ public class Execute {
 						{
 							String tmp;
 							tmp=((ConstValueString)constvalue).getValue();
-							if(tmp.length()<attr.type.size)
-							{
-								tmp+=" ";
-							}
-							else
+							if(tmp.length()>attr.type.size)
 							{
 								tmp=tmp.substring(0,attr.type.size);
 							}
 							result+=tmp;
 						}
+						else if(attr.type.type==Type.FLOAT)
+							result+=((ConstValueFloat)constvalue).getValue();
 						 
 						result+=",";
 					}
@@ -1447,6 +1588,8 @@ public class Execute {
 									}
 									result+=tmp;
 								} 
+								else if(attr.type.type==Type.FLOAT)
+									result+=((ConstValueFloat)constvalue).getValue();
 							 }
 							 else if(attr.not_null){
 									putError("insert value:"+attr.name+" shouldnot be null",-1);

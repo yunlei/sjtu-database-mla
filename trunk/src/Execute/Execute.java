@@ -160,7 +160,7 @@ public class Execute {
 		
 		catch(Exception e)
 		{
-			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
 			if(e instanceof NullPointerException){
 				e.printStackTrace();
 			} 
@@ -358,7 +358,8 @@ public class Execute {
 		real.attrlist=null;
 		while(attrlist!=null)
 		{
-			real.attrlist=new AttrList(attrlist.attr,real.attrlist);
+			if(attrlist.attr.check==null)
+				real.attrlist=new AttrList(attrlist.attr,real.attrlist);
 			attrlist=attrlist.next;
 		}
 		real.results=DBInfo.DbMani.readFile(env.database, real.tablename); 
@@ -447,7 +448,8 @@ public class Execute {
 		List<Attr> attrlist1=new ArrayList<Attr>();
 		while(attrlist!=null)
 		{
-			attrlist1.add(attrlist.attr);
+			if(attrlist.attr.check==null)
+				attrlist1.add(attrlist.attr);
 			attrlist=attrlist.next;
 		}
 		List<String> asname=new ArrayList<String>();
@@ -487,7 +489,7 @@ public class Execute {
 				ColName colname=((FuncValue)select_expr.value).colname;
 				for(int i=0;i<attrlist1.size();i++)
 				{
-					if(colname.col.equals(attrlist1.get(i)))
+					if(colname.col.equals(attrlist1.get(i).name))
 					{
 						seq.add(i);
 						break;
@@ -496,6 +498,9 @@ public class Execute {
 				tmpAttr=new Attr(this.transFunc(((FuncValue)select_expr.value).functy,
 						colname),null,false,null,false,false); 
 				
+			}
+			else if( select_expr.value instanceof OperValue){
+				tmpAttr=new Attr("oper",null,false,null,false,false); 
 			}
 			else
 				throw new Exception("uknow type in select expr");
@@ -508,6 +513,12 @@ public class Execute {
 		for(int i=outlist1.size()-1;i>=0;i--)
 		{
 			outlist=new AttrList(outlist1.get(i),outlist);
+		}
+		if(rows.length==0||rows[0].split(",").length<attrlist1.size())
+		{
+			project.results="";
+			project.attrlist=outlist;
+			return project;
 		}
 		if(project.group_col_name!=null)
 		{
@@ -686,6 +697,7 @@ public class Execute {
 			return project;
 		}
 		 
+		
 	}
 	public String transFunc(Symbol func,ColName colname)
 	{
@@ -837,7 +849,7 @@ public class Execute {
 		}
 		catch(Exception e)
 		{
-			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
 			//e.printStackTrace();
 			d.results="error";
 			return d;
@@ -952,6 +964,9 @@ public class Execute {
 	{
 		int vi1;
 		int vi2;
+		if(compexp.v1 instanceof ConstValueNull ||compexp.v2 instanceof ConstValueNull 
+				||compexp.v1 ==null|| compexp.v2==null)
+			return false;
 		if(compexp.v1 instanceof ConstValueInt && compexp.v2 instanceof ConstValueInt)
 		{
 			vi1=((ConstValueInt)compexp.v1).value;
@@ -1109,14 +1124,14 @@ public class Execute {
 	public boolean calBoolExp(BoolExsitExp boolexsitexp,List<Attr> attrlist,String [] values)
 	{
 		Semant semant=new Semant(env);
-		SelectExp select_exp=boolexsitexp.select;
-		
-		Relation select=semant.transExp(boolexsitexp.select);
+		SelectExp select_exp=(SelectExp) common.Op.copy(boolexsitexp.select);
+		select_exp.whereclause.boolexp=this.replaceBoolExp(select_exp.whereclause.boolexp, attrlist, values);
+		Relation select=semant.transExp(select_exp );
 		select=this.execute(select);
 		if(select==null)
 			return false;
-		String[] rows=select.results.split(";");
-		if(rows.length==0)
+		//String[] rows=select.results.split(";");
+		if(select.results.length()==0)
 			return boolexsitexp.exsits?false:true;		
 		return boolexsitexp.exsits?true:false; 
 	}
@@ -1130,17 +1145,51 @@ public class Execute {
 		if(bool instanceof CompBoolExp){
 			CompBoolExp cbe=(CompBoolExp)bool;
 			if(cbe.v1 instanceof ColValue){
-				
+				ConstValue tmp=this.transColValue((ColValue)cbe.v1, attrlist, values);
+				if(tmp!=null)
+					cbe.v1=tmp;
+			}
+			if(cbe.v2 instanceof ColValue){
+				ConstValue tmp=this.transColValue((ColValue)cbe.v2, attrlist, values);
+				if(tmp!=null)
+					cbe.v2=tmp;
 			}
 		}
-		return null;
+		return bool;
 	}
 	public ConstValue transColValue(ColValue cv,List<Attr> attrlist,String [] values){
 		ColName colname=cv.name;
 		for(int i=0;i<attrlist.size();i++){
-			
+			Attr attr=attrlist.get(i);
+			if(attr.name.equals(colname.col.toString())&&
+					(colname.table==null||colname.table.toString().equals("")||
+							colname.table.toString().equalsIgnoreCase(attr.tableName))){
+				return this.transTypeToConstValue(attr.type, values[i]);
+			}
 		}
+		//putError("col value not found.",-1);
 		return null;
+	}
+	public ConstValue transTypeToConstValue(Type type,String value){
+		if(value.equalsIgnoreCase("null"))
+			return new ConstValueNull();
+		try{
+			if(type.type==Type.INT)
+				return new ConstValueInt(Integer.valueOf(value));
+			if(type.type==Type.FLOAT)
+				return new ConstValueFloat(Double.valueOf(value));
+			if(type.type==Type.CHAR)
+				return new ConstValueString(value.length(),value);
+			if(type.type==Type.BOOL)
+				if(value.equalsIgnoreCase("true"))
+					return new ConstValueBoolean(true);
+				else
+					return new ConstValueBoolean(false);
+		}
+		catch(Exception e){
+			return new ConstValueNull();
+		}
+		return new ConstValueNull();
 	}
 	public boolean calBoolExp(AllExp  allexp,List<Attr> attrlist,String [] values)
 	{
@@ -1315,7 +1364,7 @@ public class Execute {
 			return  ((ConstValueInt)v).value;
 		}else if(v instanceof OperValue)
 			return  getFloatOpValue((OperValue)v,attrlist,values);
-		 putError("unknow error.(in get int value)",-1);
+		 putError("unknow error.(in get float value)",-1);
 		 return -1;
 	}
 	public int getIntValue(Value v,List<Attr> attrlist,String [] values)
@@ -1940,7 +1989,7 @@ public class Execute {
 		}
 		catch(Exception e)
 		{
-			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
 		}
 		
 		i.results="insert ok.";
@@ -2096,7 +2145,7 @@ public class Execute {
 			DBInfo.DbMani.write(env.database,u.tablename, finalresult, 0, finalresult.length());
 		}catch(Exception e)
 		{
-			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
 		}
 		
 		return u;	
@@ -2180,7 +2229,7 @@ public class Execute {
 			DBInfo.DbMani.write(env.database,al.tablename, result, 0, result.length());
 		}catch(Exception e)
 		{
-			putError(e.getMessage(),-1);			
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);			
 		}
 		al.results="";
 		return al;		
@@ -2200,18 +2249,27 @@ public class Execute {
 		int ptr=-1;
 		while(tmplist!=null)
 		{
-			ptr++;
-			if(tmplist.attr.name.equals(ci.col_name)){
-				break;
+			if(tmplist.attr.name!=null){
+				ptr++;
+				if (tmplist.attr.name.equals(ci.col_name)) {
+					break;
+				}
 			}
 			tmplist=tmplist.next;
 		}
+		if(ptr==-1){
+			putError("col name"+ci.col_name+" for index not found",-1);
+			return null;
+		}
+		ptr=rows[0].split(",").length-1-ptr; 
 		for(int i=0;i<rows.length;i++)
 		{
-			hashIndex.addPos(rows[ptr], new Integer(i));
+			String[] cols=rows[i].split(",");
+			hashIndex.addPos(cols[ptr], new Integer(i));
 		}
 		hashIndex.putData();
 		DBInfo.DbMani.addIndexInfo(env.database, ci.table_name, ci.col_name);
+		ci.results="create index success";
 		return ci; 
 	}
 	public Relation execute(CreateDB cdb)
@@ -2258,7 +2316,7 @@ public class Execute {
 		}
 		catch(Exception e)
 		{
-			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
 			ct.results="error";
 			return ct;
 		}
@@ -2290,7 +2348,7 @@ public class Execute {
 			oos.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
 			cv.results="";
 			return cv;	
 		}

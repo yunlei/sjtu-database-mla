@@ -1008,7 +1008,7 @@ public class Semant{
 			CreateIndexExp cie=(CreateIndexExp)ce;
 			AttrList list=DBInfo.DbMani.getAttriList(env.database,cie.getTable_name().toString());
 			IndexList indexlist=DBInfo.DbMani.getIndexList(env.database);
-			File file=new File(DBInfo.DbMani.rootpath+cie.getTable_name()+".index");
+			File file=new File(DBInfo.DbMani.rootpath+env.database+"\\"+cie.getTable_name()+".index");
 			if(file.exists()){
 				putError("a index for table:"+cie.getTable_name()+" has already been decleared.",cie.pos);
 				return null;

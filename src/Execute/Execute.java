@@ -423,11 +423,15 @@ public class Execute {
 		String result="";
 		for(int i=0;i<rows.length;i++)
 		{
-			
-			if(sigma.condition==null||this.calBoolExp(sigma.condition.boolExp, list, rows[i].split(",")))
-			{
-				result+=rows[i]+";";
-			}			
+			try{
+				if(sigma.condition==null||this.calBoolExp(sigma.condition.boolExp, list, rows[i].split(",")))
+				{
+					result+=rows[i]+";";
+				}
+			}
+			catch(Exception e){
+				putError(e.getMessage(),-1);
+			}
 		}
 		sigma.attrlist=(AttrList) common.Op.copy(sigma.relation.attrlist);
 		sigma.results=result;
@@ -459,6 +463,10 @@ public class Execute {
 			if(select_expr.value instanceof ColValue)
 			{
 				ColName colname=((ColValue)select_expr.value).name;
+				if(project.group_col_name!=null&&!colname.col.toString().equals(project.group_col_name.col.toString())){
+					throw new Exception("col name:"+colname.toString()+
+							" is not inside  a group clause or indide a aggregate function");
+				}
 				if(colname.col.toString().equals("*"))
 				{ 
 					for(int i=0;i<attrlist1.size();i++){
@@ -496,14 +504,15 @@ public class Execute {
 					}
 				}
 				tmpAttr=new Attr(this.transFunc(((FuncValue)select_expr.value).functy,
-						colname),null,false,null,false,false); 
+						colname),attrlist1.get(seq.get(seq.size()-1)).type,false,null,false,false); 
 				
-			}
+			}			
 			else if( select_expr.value instanceof OperValue){
+				seq.add(-2);
 				tmpAttr=new Attr("oper",null,false,null,false,false); 
 			}
 			else
-				throw new Exception("uknow type in select expr");
+				throw new Exception("uknow type in select expr£º"+select_expr.value.getClass().getName());
 			if(select_expr.alias!=null){
 				tmpAttr.name=select_expr.alias.name.toString();
 			}
@@ -569,6 +578,10 @@ public class Execute {
 								agrlist.add(1);
 							}
 						}
+						else if(select_expr.value instanceof OperValue){
+							//
+							throw new Exception("not implemented");
+						}
 					}
 					index.put(cols[group_seq], obs);
 					aggre.put(cols[group_seq], agrlist);
@@ -601,9 +614,9 @@ public class Execute {
 								agrlist.set(0, tmp+agrlist.get(0));
 								if(tmp<agrlist.get(1))
 									agrlist.set(1, tmp);
-								if(tmp<agrlist.get(2))
+								if(tmp>agrlist.get(2))
 									agrlist.set(2, tmp);
-								agrlist.set(3, agrlist.get(3));
+								agrlist.set(3, agrlist.get(3)+1);//sum,min,max,count
 							}
 						}
 					}
@@ -658,7 +671,21 @@ public class Execute {
 				result1+=";"; 
 				index.remove(key);
 			}
-			project.results=result1;
+			//check having:
+			if (project.group_condition != null) {
+				String result2="";
+				String[] rows1 = result1.split(";");
+				for (int i = 0; i < rows1.length; i++) {
+					String[] cols = rows1[i].split(",");
+					if (this.calBoolExp(project.group_condition.boolExp,
+							outlist1, cols)) {
+						result2+=rows1[i]+";";
+					}
+				}
+				project.results=result2;
+			}
+			else 
+				project.results=result1;
 			project.attrlist=outlist;
 			return project;
 		}
@@ -666,6 +693,37 @@ public class Execute {
 		{
 			String result1="";
 			Integer max,min,sum,count;
+			boolean hasAgg=false;
+			select_expr=project.select_expr;
+			while(select_expr!=null){
+				 Value v=select_expr.value;
+				 if(v instanceof FuncValue)
+					 {
+					 hasAgg=true;break;
+					 }
+				 select_expr=select_expr.next;
+			}
+			select_expr=project.select_expr;
+			while(hasAgg&&select_expr!=null){
+				 Value v=select_expr.value;
+				 if(v instanceof ColValue)
+				{
+					 throw new Exception("col name:"+((ColValue)v).name.toString()+
+						" is not inside  a group clause or indide a aggregate function");
+				}
+				 select_expr=select_expr.next;
+			}
+			 int []maxarr=new int[seq.size()];
+			 int []minarr=new int[seq.size()];
+			 int []countarr=new int[seq.size()];
+			 int []sumarr=new int[seq.size()];
+			 for(int i=0;i<maxarr.length;i++)
+			 {
+				 minarr[i]=-1;
+				 maxarr[i]=-1;
+				 countarr[i]=0;
+				 sumarr[i]=0;
+			 }
 			for(int i=0;i<rows.length;i++)
 			{
 				String[] cols=rows[i].split(",");
@@ -684,11 +742,47 @@ public class Execute {
 						result1+=((ConstValue)select_expr.value).getValue();
 					}
 					else if(select_expr.value instanceof FuncValue){//max,min
-						throw new Exception("funct value not implemented yet");
+						//throw new Exception("funct value not implemented yet");
+						if(attrlist1.get(seq.get(j)).type.type!=Type.INT)
+						{
+							throw(new Exception("func value:"+((FuncValue)select_expr.value).functy.toString()+" should be a integer"));
+						}
+						if(!cols[seq.get(j)].equalsIgnoreCase("null")){
+							Integer tmp=Integer.valueOf(cols[seq.get(j)]);
+							sumarr[j]+=tmp;
+							countarr[j]++;
+							if(maxarr[j]==-1||(tmp>maxarr[j]))
+								maxarr[j]=tmp;
+							if(minarr[j]==-1||(tmp<minarr[j]))
+								minarr[j]=tmp; 
+						}
 					}
 					else
-						throw new Exception("unknown select expr");
+						throw new Exception("unknown select expr"+select_expr.value.getClass().getName());
 					result1+=",";
+				}
+				result1+=";";
+			}
+			if(hasAgg){
+				select_expr=project.select_expr;
+				result1="";
+				for(int i=0;i<seq.size();i++,select_expr=select_expr.next){
+					FuncValue fv=(FuncValue)select_expr.value;
+					if(fv.functy.toString().equalsIgnoreCase("max")){
+						result1+=maxarr[i]+",";
+					}
+					if(fv.functy.toString().equalsIgnoreCase("min")){
+						result1+=minarr[i]+",";
+					}
+					if(fv.functy.toString().equalsIgnoreCase("count")){
+						result1+=countarr[i]+",";
+					}
+					if(fv.functy.toString().equalsIgnoreCase("sum")){
+						result1+=sumarr[i]+",";
+					}
+					if(fv.functy.toString().equalsIgnoreCase("avg")){
+						result1+=(sumarr[i]/countarr[i])+",";
+					} 
 				}
 				result1+=";";
 			}
@@ -702,7 +796,7 @@ public class Execute {
 	public String transFunc(Symbol func,ColName colname)
 	{
 		
-		return func.toString()+"("+colname.col+")";
+		return func.toString()+"("+colname.toString()+")";
 		
 	}
 	public Relation execute(Describe des)
@@ -856,8 +950,8 @@ public class Execute {
 		} 
 		
 	}
-	public boolean calBoolExp(BoolExp boolexp,List<Attr> attrlist,String [] values)
-	{
+	public boolean calBoolExp(BoolExp boolexp,List<Attr> attrlist,String [] values) throws Exception
+	{ 
 		if(boolexp instanceof AllExp)
 			return calBoolExp((AllExp)boolexp, attrlist, values);
 		if(boolexp instanceof AnyExp)
@@ -920,7 +1014,7 @@ public class Execute {
 		if(type.type==Type.FLOAT) result+="FLOAT";
 		return result;
 	}
-	public boolean calBoolExp(InExp inexp,List<Attr> attrlist,String [] values)
+	public boolean calBoolExp(InExp inexp,List<Attr> attrlist,String [] values) throws Exception
 	{
 		
 		Semant semant=new Semant(env);
@@ -960,7 +1054,7 @@ public class Execute {
 		
 		return false;
 	}
-	public boolean calBoolExp(CompBoolExp compexp,List<Attr> attrlist,String [] values)
+	public boolean calBoolExp(CompBoolExp compexp,List<Attr> attrlist,String [] values) throws Exception
 	{
 		int vi1;
 		int vi2;
@@ -1111,12 +1205,13 @@ public class Execute {
 		else if(compexp.v1 instanceof ConstValueString && compexp.v2 instanceof ConstValueString)
 		{
 			 return this.valueComp(((ConstValueString)compexp.v1).value, compexp.comp, ((ConstValueString)compexp.v2).value);
-		} 
+		}
+		
 		vi1=this.getIntValue(compexp.v1, attrlist, values);
 		vi2=this.getIntValue(compexp.v2, attrlist, values);
 		if(vi1!=-1&&vi2!=-1)
 		{
-			  this.valueComp(vi1,compexp.comp, vi2);
+			  return this.valueComp(vi1,compexp.comp, vi2);
 		}
 		putError("unknown problem.",-1);
 		return false;	
@@ -1194,11 +1289,11 @@ public class Execute {
 	public boolean calBoolExp(AllExp  allexp,List<Attr> attrlist,String [] values)
 	{
 		//attrlist and values have the same numbers of value;
-		if(!(allexp.value instanceof ConstValueInt))
-		{
-			putError("all exp should be a int value.",-1);
-			return false;
-		} 
+//		if(!(allexp.value instanceof ConstValueInt))
+//		{
+//			putError("all exp should be a int value.",-1);
+//			return false;
+//		} 
 		Semant semant=new Semant(env);
 		Relation select=semant.transExp(allexp.select);
 		select=this.execute(select);
@@ -1282,7 +1377,7 @@ public class Execute {
 			return -1;
 		return this.calFloatOpvalue(x, ov.op.toString(), y);
 	}
-	public int getOpValue(OperValue ov,List<Attr> attrlist,String [] values)
+	public int getOpValue(OperValue ov,List<Attr> attrlist,String [] values) throws Exception
 	{
 		int x,y;
 		x=getIntValue(ov.v1,attrlist,values);
@@ -1367,7 +1462,7 @@ public class Execute {
 		 putError("unknow error.(in get float value)",-1);
 		 return -1;
 	}
-	public int getIntValue(Value v,List<Attr> attrlist,String [] values)
+	public int getIntValue(Value v,List<Attr> attrlist,String [] values) throws Exception
 	{
 		int x;
 		if(v instanceof ColValue||v instanceof FuncValue)
@@ -1411,6 +1506,22 @@ public class Execute {
 			return  ((ConstValueInt)v).value;
 		}else if(v instanceof OperValue)
 			return  getOpValue((OperValue)v,attrlist,values);
+		else if(v instanceof SubqueryValue){
+			SubqueryValue sv=(SubqueryValue)v;
+			Semant semant=new Semant(env);
+			Relation  sub=semant.transExp(sv.select);
+			sub=this.execute(sub);
+			if(sub.results==null||sub.results.equals(""))
+				throw new Exception("null value returned by the subquery.");
+			String [] rows=sub.results.split(";");
+			if(rows.length!=1){
+				throw new Exception("subquery around comparing operations(=,!=,>,< ...) are not alowed to return more than onn row.");
+			}
+			String [] cols=rows[0].split(",");
+			if(cols.length!=1)
+				throw new Exception("subquery around comparing operations(=,!=,>,< ...) are not alowed to return more than onn column.");
+			return Integer.valueOf(cols[0]);
+		}
 		 putError("unknow error.(in get int value)",-1);
 		 return -1;
 	}
@@ -1445,11 +1556,11 @@ public class Execute {
 	public boolean calBoolExp(AnyExp  anyexp,List<Attr> attrlist,String [] values)
 	{
 		//attrlist and values have the same numbers of value;
-		if(!(anyexp.value instanceof ConstValueInt))
-		{
-			putError("all exp should be a int value.",-1);
-			return false;
-		} 
+//		if(!(anyexp.value instanceof ConstValueInt))
+//		{
+//			putError("any exp should be a int value.",-1);
+//			return false;
+//		} 
 		Semant semant=new Semant(env);
 		Relation select=semant.transExp(anyexp.select);
 		select=this.execute(select);
@@ -1581,7 +1692,7 @@ public class Execute {
 			if(stringComp(v1,v2)<=0)
 				return true;
 		}
-		if(cop.equals("LE"))
+		if(cop.equals("GE"))
 		{
 			if(stringComp(v1,v2)>=0)
 				return true;
@@ -1621,7 +1732,7 @@ public class Execute {
 		if(cop.equals("LE")) 
 			if(v1<=v2)
 				return true; 
-		if(cop.equals("LE")) 
+		if(cop.equals("GE")) 
 			if(v1>=v2)
 				return true; 
 		return false;		

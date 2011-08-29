@@ -456,6 +456,10 @@ public class Execute {
 				attrlist1.add(attrlist.attr);
 			attrlist=attrlist.next;
 		}
+		List<Attr> attrlist2=new ArrayList<Attr>();
+		for(int i=0;i<attrlist1.size();i++)
+			attrlist2.add(attrlist1.get(i));
+		//Collections.reverse(attrlist2);
 		List<String> asname=new ArrayList<String>();
 		while(select_expr!=null)
 		{
@@ -580,7 +584,9 @@ public class Execute {
 						}
 						else if(select_expr.value instanceof OperValue){
 							//
-							throw new Exception("not implemented");
+							Integer inter=this.getOpValue((OperValue)select_expr.value , attrlist2, cols);
+							obs.add(inter);
+							//throw new Exception("not implemented");							
 						}
 					}
 					index.put(cols[group_seq], obs);
@@ -619,6 +625,12 @@ public class Execute {
 								agrlist.set(3, agrlist.get(3)+1);//sum,min,max,count
 							}
 						}
+						else if(select_expr.value instanceof OperValue){
+							//
+							Integer inter=this.getOpValue((OperValue)select_expr.value , attrlist2, cols);
+							obs.add(inter);
+							//throw new Exception("not implemented");							
+						}
 					}
 					index.put(cols[group_seq], obs);
 					aggre.put(cols[group_seq], agrlist);
@@ -654,6 +666,7 @@ public class Execute {
 							result1+=agr.get(2)/agr.get(3);
 						}
 					}
+					
 					else{
 						if(select_expr.value instanceof ColValue&&((ColValue)select_expr.value).name.col.toString().equals("*"))
 						{							  
@@ -757,8 +770,14 @@ public class Execute {
 								minarr[j]=tmp; 
 						}
 					}
+					else if(select_expr.value instanceof OperValue){
+						//
+						Integer inter=this.getOpValue((OperValue)select_expr.value , attrlist2, cols);
+						result1+=inter+"";
+						//throw new Exception("not implemented");							
+					}
 					else
-						throw new Exception("unknown select expr"+select_expr.value.getClass().getName());
+						throw new Exception("unknown select expr:"+select_expr.value.getClass().getName());
 					result1+=",";
 				}
 				result1+=";";
@@ -1368,20 +1387,24 @@ public class Execute {
 		}
 		return true; 
 	}
-	public double getFloatOpValue(OperValue ov,List<Attr> attrlist,String [] values)
+	public Double getFloatOpValue(OperValue ov,List<Attr> attrlist,String [] values)
 	{
-		double x,y;
+		Double x,y;
 		x=getFloatValue(ov.v1,attrlist,values);
 		y=getFloatValue(ov.v2,attrlist,values);
+		if(x==null||y==null)
+			return null;
 		if(x==-1||y==-1)
-			return -1;
+			return Double.valueOf(-1);
 		return this.calFloatOpvalue(x, ov.op.toString(), y);
 	}
-	public int getOpValue(OperValue ov,List<Attr> attrlist,String [] values) throws Exception
+	public Integer getOpValue(OperValue ov,List<Attr> attrlist,String [] values) throws Exception
 	{
-		int x,y;
+		Integer x,y;
 		x=getIntValue(ov.v1,attrlist,values);
 		y=getIntValue(ov.v2,attrlist,values);
+		if(x==null||x==null)
+			return null;
 		if(x==-1||y==-1)
 			return -1;
 		return this.calOpvalue(x, ov.op.toString(), y);
@@ -1462,7 +1485,7 @@ public class Execute {
 		 putError("unknow error.(in get float value)",-1);
 		 return -1;
 	}
-	public int getIntValue(Value v,List<Attr> attrlist,String [] values) throws Exception
+	public Integer getIntValue(Value v,List<Attr> attrlist,String [] values) throws Exception
 	{
 		int x;
 		if(v instanceof ColValue||v instanceof FuncValue)
@@ -1500,6 +1523,8 @@ public class Execute {
 				putError("value is not a integer",-1);
 				return -1;
 			}
+			if(values[ptr].equals("null"))
+				return (Integer) null;
 			return x=Integer.valueOf(values[ptr]);
 		}else if(v instanceof ConstValueInt)
 		{
@@ -1539,7 +1564,7 @@ public class Execute {
 			return v1%v2;		
 		return -1;
 	}
-	public int calOpvalue(int v1,String op,int v2)
+	public int calOpvalue(Integer v1,String op,Integer v2)
 	{
 		if(op.equals("PLUS"))
 			return v1+v2;
@@ -1906,24 +1931,27 @@ public class Execute {
 //							else
 //								keyindex.addPos(( constvalue).getValue(), new Integer(-1));
 //						}
-						
-						if(attr.type.type==Type.BOOL)
-							result+=((ConstValueBoolean)constvalue).getValue();
-						else if(attr.type.type ==Type.INT)
-							result+=((ConstValueInt)constvalue).getValue().toString();
-						else if(attr.type.type==Type.CHAR)
-						{
-							String tmp;
-							tmp=((ConstValueString)constvalue).getValue();
-							if(tmp.length()>attr.type.size)
-							{
-								tmp=tmp.substring(0,attr.type.size);
-							}
-							result+=tmp;
+						if(constvalue instanceof ConstValueNull)
+							result+="null";
+						else{
+							if (attr.type.type == Type.BOOL)
+								result += ((ConstValueBoolean) constvalue)
+										.getValue();
+							else if (attr.type.type == Type.INT)
+								result += ((ConstValueInt) constvalue)
+										.getValue().toString();
+							else if (attr.type.type == Type.CHAR) {
+								String tmp;
+								tmp = ((ConstValueString) constvalue)
+										.getValue();
+								if (tmp.length() > attr.type.size) {
+									tmp = tmp.substring(0, attr.type.size);
+								}
+								result += tmp;
+							} else if (attr.type.type == Type.FLOAT)
+								result += ((ConstValueFloat) constvalue)
+										.getValue();
 						}
-						else if(attr.type.type==Type.FLOAT)
-							result+=((ConstValueFloat)constvalue).getValue();
-						 
 						result+=",";
 					}
 				} 

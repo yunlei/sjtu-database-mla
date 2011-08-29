@@ -35,6 +35,82 @@ public class DbMani {
 			
 		}
 	}
+	public static  PrioList getPrioList(){
+		File file=new File(rootpath+"system" +"\\priority.list");
+		if(!file.exists())
+			return null;
+		ObjectInputStream ois;
+		try {
+			 ois = new ObjectInputStream(new FileInputStream(file)); 
+			 PrioList list=(PrioList) ois.readObject();
+			 ois.close();
+			return list;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) { 
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	public static void putPrioLit(PrioList pl){
+		File file=new File(rootpath+"system" +"\\priority.list");
+		try {
+			if(!file.exists())
+				file.createNewFile();
+			ObjectOutputStream ois;
+		
+			 ois = new ObjectOutputStream(new FileOutputStream(file)); 
+			 ois.writeObject(pl);
+			 ois.close();			 
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) { 
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	public static boolean hasTable(String db,String tablename){		
+		File file=new File(rootpath+db+"\\"+tablename+".attr");
+		return file.exists();
+	}
+	public static boolean hasUser(String name){
+		File file = new File(rootpath + "system" + "\\user.list");
+
+		try {
+			if (!file.exists())
+				return false;
+			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
+					file));
+			UserList userlist = (UserList) ois.readObject();
+			ois.close();
+			if (userlist == null)
+				return false;
+			
+			
+			for(int i=0;i<userlist.size();i++){
+				if(userlist.get(i).username.equals(name))
+					return true;
+			}
+			return false;
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false; 
+	}
 	public static boolean checkUser(String name,String pw){
 		File file = new File(rootpath + "system" + "\\user.list");
 
@@ -44,10 +120,9 @@ public class DbMani {
 			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
 					file));
 			UserList userlist = (UserList) ois.readObject();
-			if (userlist == null)
-				return false;
-			
 			ois.close();
+			if (userlist == null)
+				return false; 
 			for(int i=0;i<userlist.size();i++){
 				if(userlist.get(i).username.equals(name)&&
 						userlist.get(i).password.equals(pw))
@@ -75,16 +150,16 @@ public class DbMani {
 			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(
 					file));
 			UserList userlist = (UserList) ois.readObject();
-			if (userlist == null)
-				return ;
-			
 			ois.close();
+			if (userlist == null)
+				return ;				
 			for(int i=0;i<userlist.size();i++){
 				if(userlist.get(i).username.equals(name)&&
 						userlist.get(i).password.equals(pw))
 					userlist.remove(i);
 			}
 			 ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			  
 			 oos.writeObject(userlist);
 			 oos.close();
 		} catch (FileNotFoundException e) {
@@ -115,6 +190,7 @@ public class DbMani {
 			 userlist.add(new UserInfo(name,pw));
 			 
 			 ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			  
 			 oos.writeObject(userlist);
 			 oos.close();
 		} catch (FileNotFoundException e) {
@@ -159,7 +235,9 @@ public class DbMani {
 			if(!file.exists())
 				file.createNewFile();
 			ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
+			
 			oos.writeObject(il);
+			oos.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -177,6 +255,7 @@ public class DbMani {
 		try {
 			 ois = new ObjectInputStream(new FileInputStream(file)); 
 			 IndexList list=(IndexList) ois.readObject();
+			 ois.close();
 			return list;
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -249,9 +328,10 @@ public class DbMani {
 		File file=new File(rootpath+database+"\\"+tablename+".data");
 		file.delete();
 	}
-	public static void deleteAFile(String subpath){
+	public static void deleteAFile(String subpath) throws Exception{
 		File file=new File(rootpath+subpath);
-		file.delete();
+		if(!file.delete())
+			;//throw new Exception("delete error :"+rootpath+subpath);
 	}
 	public static void write(String database,String tablename,String content,long length,long l)
 	{
@@ -324,6 +404,8 @@ public class DbMani {
 				file.createNewFile();
 			ObjectOutputStream oos=new ObjectOutputStream(new FileOutputStream(file));
 			oos.writeObject(vl);
+			oos.close();
+			
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -335,11 +417,13 @@ public class DbMani {
 	public  static Alge.AttrList getAttriList(String db,String table)
 	{
 		try{
-			File file=new File(DBInfo.DbMani.rootpath+db+"\\"+table+".attr");
+			String filepath=DBInfo.DbMani.rootpath+db+"\\"+table+".attr";
+			File file=new File(filepath);
 			if(!file.exists())
 				return null;
 			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(file));
 			Alge.AttrList list=(AttrList) ois.readObject();
+			ois.close();
 			return list;
 		}
 		catch(Exception e)

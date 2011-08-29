@@ -12,7 +12,7 @@ import ErrorMsg.ErrorMsg;
  StringBuffer string = new StringBuffer();
 
  private java_cup.runtime.Symbol nextToken(int kind, Object value) {
-	return new java_cup.runtime.Symbol(kind, yychar, yychar+yylength(),value);
+	return new java_cup.runtime.Symbol(kind, yyline, yychar+yylength(),value);
 }
 
 private java_cup.runtime.Symbol nextToken(int kind){
@@ -180,7 +180,7 @@ NONNEWLINE_WHITE_SPACE_CHAR=[\ \t\b\012]
 <YYINITIAL> [a-zA-Z]([0-9a-zA-Z]|_)*     { return nextToken(sym.NAME,yytext()); }
 
 <YYINITIAL> {int}                        { return nextToken(sym.INTVALUE,new Integer(yytext())); }
-<YYINITIAL> {float}                      { return nextToken(sym.FLOATVALUE,new Float(yytext())); }
+<YYINITIAL> {float}                      { return nextToken(sym.FLOATVALUE,Double.valueOf((yytext()))); }
 
 <YYINITIAL> {NONNEWLINE_WHITE_SPACE_CHAR}+ { }
 

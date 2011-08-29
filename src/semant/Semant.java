@@ -104,12 +104,12 @@ public class Semant{
 				AttrList attrlist=DBInfo.DbMani.getAttriList(env.database, name);
 				if(attrlist==null)
 				{
-					putError("table name:"+name+" not implemented.",namelist.pos);
+					putError("table name:"+name+" not found.",namelist.pos);
 					return null;
 				}
 				namelist=namelist.next;
 			}
-			return new Drop(Drop.DROPTABLE,namelist);
+			return new Drop(Drop.DROPTABLE,de.namelist);
 		}
 		if(e instanceof DropViewExp)
 		{
@@ -227,8 +227,37 @@ public class Semant{
 	}
 	public Relation transExp(GrantExp e)
 	{
-		putError("grant exp not implement.",e.pos);
-		return null;
+		//putError("grant exp not implement.",e.pos);
+		//grant select insert update on tablename(s) to user(s);
+		NameList tables=e.table_list;
+		while(tables!=null){
+			if(!DBInfo.DbMani.hasTable(env.database, tables.name.toString())){
+				putError("table:"+tables.name+ " doesnot exists(int grant exp).",e.pos);
+				return null;
+			}
+			tables=tables.next;
+		}
+		NameList userlist=e.user_list;
+		while(userlist!=null){
+			if(!DBInfo.DbMani.hasUser(userlist.name.toString())){
+				putError("user :"+userlist.name.toString()+" doesnot exists.",e.pos);
+				return null;
+			}
+		}
+		int priority=0;
+		Privileges Pris=e.p;
+		while(Pris!=null){
+			Privilege p=Pris.Privilege;
+			if(p.privilege.toString().equalsIgnoreCase("SELECT"))
+				priority|=DBInfo.UserPrio.SELECT;
+			if(p.privilege.toString().equalsIgnoreCase("INSERT"))
+				priority|=DBInfo.UserPrio.INSERT;
+			if(p.privilege.toString().equalsIgnoreCase("UPDATE"))
+				priority|=DBInfo.UserPrio.UPDATE;
+		}
+		if(e.WithOption)
+			priority|=DBInfo.UserPrio.GRANT;
+		return new Grant(priority,e.table_list,e.user_list );
 	}
 	public Relation transExp(DescribeExp e)
 	{
@@ -281,7 +310,7 @@ public class Semant{
 			boolean flag=false;
 			while(tmplist!=null)
 			{
-				Attr attr=attrlist.attr;
+				Attr attr=tmplist.attr;
 				if(attr.name!=null&&attr.name.equals(name)){
 					flag=true;
 					//check type;
@@ -499,7 +528,7 @@ public class Semant{
 				{
 					if((colname.table==null||colname.table.equals("")||
 							colname.table.toString().equals(attlist.attr.tableName))
-							&&attlist.attr.name.equals(colname.col.toString()))
+							&&attlist.attr.check==null&&attlist.attr.name.equals(colname.col.toString()))
 					{
 						flag=true;
 						break;
@@ -864,6 +893,7 @@ public class Semant{
 								flag=true;
 								break;
 							}
+							tmpList=tmpList.next;
 						}
 						if(!flag)
 						{
@@ -884,9 +914,9 @@ public class Semant{
 						while(tmpList!=null)
 						{
 							Attr attr=tmpList.attr;
-							if(attr.name.equals(namelist.name.toString()))
+							if(attr.name!=null&&attr.name.equals(namelist.name.toString()))
 							{
-								if(!attr.key)
+								if(attr.key)
 								{
 									putError("error defining primary key  :"+attr.name,0);
 									return null;
@@ -895,6 +925,7 @@ public class Semant{
 								flag=true;
 								break;
 							}
+							tmpList=tmpList.next;
 						}
 						if(!flag)
 						{
@@ -924,13 +955,18 @@ public class Semant{
 					boolean flag=false;
 					while(fklist!=null)
 					{
-						if(fklist.attr.name.equals(fkd.fk.col.toString()))
+						if(fklist.attr.name!=null&&fklist.attr.name.equals(fkd.fk.col.toString()))
 						{
 							if(fklist.attr.key)
 							{
+								if(fklist.attr.type.type!=tmpList.attr.type.type){
+									putError("fk:"+fkd.fk.toString()+" has different type with "+tmpList.attr.name,-1);
+									return null;
+								}
 								flag=true;
 								break;
 							}
+							
 						}
 						fklist=fklist.next;
 					}
@@ -940,6 +976,7 @@ public class Semant{
 						return null;
 					}
 					tmpList.attr.foreign_key=new ColName(fkd.fk.table.toString(),fkd.fk.col.toString());
+					tmpList.attr.fk=true;
 				}
 				el=el.next;
 			}
@@ -956,6 +993,7 @@ public class Semant{
 					putError("create view error:a view with the name:"+cve.name+" has already exists.",cve.pos);
 					return null;
 				}
+				viewlist=viewlist.next;
 			}
 			Relation relation=transExp(cve.select);
 			if(relation==null)

@@ -13,12 +13,15 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.regex.Pattern;
  
 
 import Absyn.*;
 import Alge.*;
 import DBInfo.Index;
 import DBInfo.IndexList;
+import DBInfo.PrioList;
+import DBInfo.UserPrio;
 import DBInfo.View;
 import DBInfo.ViewList;
 import ErrorMsg.ErrorList;
@@ -63,21 +66,23 @@ public class Execute {
 			str1="";
 		else
 		{ 
+			String str2="";
 			if(r1 instanceof Project||
 					(r1 instanceof Gamma)||
 					r1 instanceof Order
 					||r1 instanceof Sigma
 					||r1 instanceof Gamma)
 			{
-				String str2="";
+				
 				AttrList attrlist=r1.attrlist;
 				while(attrlist!=null){
 					str2+=attrlist.attr.name+',';
 					attrlist=attrlist.next;
 				}
 				str2+="\n";
-				str1=str2+r1.results+"\n";
+				
 			}
+			str1=str2+r1.results+"\n";
 			
 			 
 		}
@@ -148,13 +153,66 @@ public class Execute {
 			return execute((Gamma)r);
 		if(r instanceof Order)
 			return execute((Order)r);
+		if(r instanceof Grant)
+			return execute((Grant)r);
 		}
+		
 		
 		catch(Exception e)
 		{
 			putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException){
+				e.printStackTrace();
+			} 
 		}
 		return null;		
+	}
+	public Relation execute(Grant g){
+		NameList tablelist=g.table_list;
+		
+		PrioList priolist=DBInfo.DbMani.getPrioList();
+		if(priolist==null)
+			priolist=new PrioList();
+		while(tablelist!=null){
+			String table=tablelist.name.toString();
+			//get current user's priority
+			int priority = -1;
+			for(int i=0;i<priolist.size();i++){
+				if(priolist.get(i).username.equals(env.user)&&
+						priolist.get(i).tablename.equals(table)){
+					priority=priolist.get(i).getPriority();
+				}
+			}
+			if(priority==-1){
+				putError("user:"+env.user+" has no priority to table:"+table,-1);				
+			}
+			else if((priority&DBInfo.UserPrio.GRANT)==0){
+				putError("user:"+env.user+" has no grant priority for table:"+table,-1);
+			}
+			else{
+				priority&=g.priority;
+				NameList userlist=g.user_list;
+				while(userlist!=null){
+					boolean flag=false;
+					for(int i=0;i<priolist.size();i++){
+						if(priolist.get(i).username.equals(userlist.name.toString())&&
+								priolist.get(i).tablename.equals(table)){
+							priolist.get(i).addPriority(priority);
+							flag=true;
+							break;
+						}
+					}
+					if(!flag){
+						priolist.add(new UserPrio(userlist.name.toString(),table,priority)); 
+					}
+					userlist=userlist.next;
+				}
+			}
+			tablelist=tablelist.next;
+		}
+		
+		g.results="grant ok.";
+		return g;
 	}
 	public Relation execute(Order order){
 		
@@ -241,16 +299,22 @@ public class Execute {
 		return r; 
 	}
 	public Relation execute(Drop drop){
+		try {
 		if(drop.choice==Drop.DROPTABLE){
 			NameList namelist=drop.tabalename;
+			String names="";
 			while(namelist!=null){
+				names+=namelist.name.toString()+" ";
 				String tablename=namelist.name.toString();
+				
 				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".data");
+				
 				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".attr");
 				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".index");
+				DBInfo.DbMani.deleteAFile(env.database+"\\"+tablename+".key.index");
 				namelist=namelist.next;
 			}
-			drop.results="table:"+drop.name+" been deletedd";
+			drop.results="table:"+names+" been deletedd";
 		}
 		else if(drop.choice== Drop.DROPINDEX){
 			IndexList indexlist=DBInfo.DbMani.getIndexList(env.database);
@@ -282,7 +346,10 @@ public class Execute {
 			file.delete();
 			drop.results="database:"+drop.name+" deleted.";
 		}
-		
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			drop.results=e.getMessage();
+		}
 		return drop;
 	}
 	public Relation execute(RealRelation real)
@@ -643,6 +710,8 @@ public class Execute {
 			for(int i=list.size()-1;i>=0;i--)
 			{
 				Attr attr=list.get(i);
+				if(attr.check!=null)
+					continue;
 				result+=attr.name+"	|";
 				if(attr.type.type==Type.INT) result+="INT";
 				if(attr.type.type==Type.CHAR) result+="CHAR("+attr.type.size+")";
@@ -675,20 +744,25 @@ public class Execute {
 			List<Attr> list1=new ArrayList<Attr>();
 			int totallength=0;
 			int keypos=-1;
+			int fkpos=-1;
+			HashIndex fkindex=null;
 			HashIndex keyindex = null;
 			while(attrlist!=null)
 			{
-				list1.add(attrlist.attr);
-				
-				Type type=attrlist.attr.type;
-				if(type.type ==Type.BOOL)
-					totallength+=Type.BOOLSIZE;
-				else if(type.type==Type.INT)
-					totallength+=Type.INTSIZE;
-				else if(type.type==Type.CHAR)
-					totallength+=type.size;
+				if(attrlist.attr.check==null){
+					list1.add(attrlist.attr);
+					
+					Type type=attrlist.attr.type;
+					if(type.type ==Type.BOOL)
+						totallength+=Type.BOOLSIZE;
+					else if(type.type==Type.INT)
+						totallength+=Type.INTSIZE;
+					else if(type.type==Type.CHAR)
+						totallength+=type.size;
+				}
 				attrlist=attrlist.next;
 			}List<Attr> list=new ArrayList<Attr>();
+			ColName fk=null;
 			for(int i=list1.size()-1;i>=0;i--)
 			{
 				list.add(list1.get(i));
@@ -697,6 +771,12 @@ public class Execute {
 					keypos=list.size()-1;
 					keyindex=new HashIndex(env.database,d.name+".key",list1.get(i).name,d.name+".key");
 					keyindex.getData();
+				}
+				if(list1.get(i).fk){
+					fkpos=list.size()-1;
+					fk=list1.get(i).foreign_key;
+					fkindex=new HashIndex(env.database,fk.table+".key",fk.col.toString(),fk.table+".key");
+					fkindex.getData();
 				}
 			}
 			String src=DBInfo.DbMani.readFile(env.database, d.name);
@@ -719,17 +799,32 @@ public class Execute {
 			{
 				String[] cols=rows[i].split(",");
 				colnum=cols.length;
-				if(this.calBoolExp(d.exp, list, cols))
+				boolean flag=false;
+				if(d.exp!=null&&this.calBoolExp(d.exp, list, cols))
 				{
 					total++;
 					if(keypos!=-1)
 					{
-						keyindex.deletePos(cols[keypos], new Integer(-1));
+						if(keyindex.posSize(cols[keypos])==1)
+						{
+							keyindex.deletePos(cols[keypos], new Integer(-1));
+							flag=true;
+						}
+						else{
+							putError("row:"+rows[i]+"can not be deleted.(key value:"+list.get(keypos).name+"("+cols[keypos]+") is referenced as a foreign key.",-1);
+						}				
+					}
+					if(fkpos!=-1){
+						flag=this.deleteFK(cols[fkpos], fk);
+						if(!flag){
+							putError("row:"+rows[i]+"can not be deleted.(fk key value:"+list.get(fkpos).name
+									+"("+cols[fkpos]+") is a fk. " +
+											"this may be caused by that fk not exisits, or only referencd once.",-1);
+						}
 					}
 				}
-				else {
-					left++;
-					
+				if(!flag) {
+					left++; 
 					result+=rows[i];
 					result+=";"; 
 				}
@@ -775,11 +870,50 @@ public class Execute {
 			return calBoolExp((LikeEscapeExp)boolexp, attrlist, values);
 		return false;
 	}
+	public boolean calBoolExp(LikeEscapeExp exp,List<Attr> attrlist,String [] values){
+		String str=exp.likestring;
+		str=str.replace("%", "(.)*");
+		str=str.replace("_", ".");
+		if(exp.escape_or_not){
+			str=str.replaceAll(exp.escapestring+"(.)*", "%");
+			str=str.replaceAll(exp.escapestring+".", "_");
+		}
+		int ptr=-1;
+		if(exp.value instanceof ColValue){
+			ColName colname=((ColValue)exp.value).name;
+			for(int i=0;i<attrlist.size();i++){
+				Attr attr=attrlist.get(i);
+				if(attr.name.equals(colname.col.toString())&&
+						(attr.tableName==null||attr.tableName.equals("")
+								||attr.tableName.equals(colname.table.toString()))){
+					ptr=i;
+					break;
+				}
+			}
+			if(attrlist.get(ptr).type.type!=Type.CHAR){
+				putError("type of "+colname.toString()+" is not string ("+this.transType(attrlist.get(ptr).type)+").",-1);
+				return false;
+			}
+			boolean result= Pattern.matches(values[ptr], str);
+			return exp.like_or_not?result:!result;
+		}
+		putError("value of like exp is not a colum name.",-1);
+		return false;
+	}
+	public String transType(Type type){
+		String result="";
+		if(type.type==Type.INT) result+="INT";
+		if(type.type==Type.CHAR) result+="CHAR("+type.size+")";
+		if(type.type==Type.BOOL)result+="BOOLEAN";
+		if(type.type==Type.FLOAT) result+="FLOAT";
+		return result;
+	}
 	public boolean calBoolExp(InExp inexp,List<Attr> attrlist,String [] values)
 	{
 		
 		Semant semant=new Semant(env);
 		Relation select=semant.transExp(inexp.select);
+		select=this.execute(select);
 		AttrList attrlist1=select.attrlist;
 		if(attrlist1==null||attrlist1.next!=null)
 		{
@@ -894,8 +1028,8 @@ public class Execute {
 		}
 		else if(compexp.v2 instanceof ColValue  && compexp.v1 instanceof ConstValueInt )
 		{
-			CompBoolExp boolexp=new CompBoolExp(compexp.v2,compexp.comp,compexp.v1);
-			return !this.calBoolExp(boolexp, attrlist, values);
+			CompBoolExp boolexp=new CompBoolExp(compexp.v2,this.reverseCop(compexp.comp),compexp.v1);
+			return this.calBoolExp(boolexp, attrlist, values);
 		}
 		else if(compexp.v1 instanceof ColValue  && compexp.v2 instanceof ConstValueInt )
 		{
@@ -925,7 +1059,7 @@ public class Execute {
 		}
 		else if(compexp.v2 instanceof ColValue  && compexp.v1 instanceof ConstValueInt )
 		{
-			CompBoolExp boolexp=new CompBoolExp(compexp.v2,compexp.comp,compexp.v1);
+			CompBoolExp boolexp=new CompBoolExp(compexp.v2,this.reverseCop(compexp.comp),compexp.v1);
 			return !this.calBoolExp(boolexp, attrlist, values);
 		}
 		else if(compexp.v1 instanceof ColValue  && compexp.v2 instanceof ConstValueString )
@@ -956,7 +1090,7 @@ public class Execute {
 		}
 		else if(compexp.v2 instanceof ColValue  && compexp.v1 instanceof ConstValueString )
 		{
-			CompBoolExp boolexp=new CompBoolExp(compexp.v2,compexp.comp,compexp.v1);
+			CompBoolExp boolexp=new CompBoolExp(compexp.v2,this.reverseCop(compexp.comp),compexp.v1);
 			return this.calBoolExp(boolexp, attrlist, values);
 		}
 		else if(compexp.v1 instanceof ConstValueString && compexp.v2 instanceof ConstValueString)
@@ -975,11 +1109,38 @@ public class Execute {
 	public boolean calBoolExp(BoolExsitExp boolexsitexp,List<Attr> attrlist,String [] values)
 	{
 		Semant semant=new Semant(env);
+		SelectExp select_exp=boolexsitexp.select;
+		
 		Relation select=semant.transExp(boolexsitexp.select);
+		select=this.execute(select);
+		if(select==null)
+			return false;
 		String[] rows=select.results.split(";");
 		if(rows.length==0)
-			return false;		
-		return true; 
+			return boolexsitexp.exsits?false:true;		
+		return boolexsitexp.exsits?true:false; 
+	}
+	public BoolExp replaceBoolExp(BoolExp bool,List<Attr> attrlist,String [] values){
+		if(bool instanceof BoolAndExp)
+			return new BoolAndExp(this.replaceBoolExp(((BoolAndExp) bool).exp1, attrlist, values),
+					this.replaceBoolExp(((BoolAndExp) bool).exp2, attrlist, values));
+		if(bool instanceof BoolOrExp)
+			return new BoolAndExp(this.replaceBoolExp(((BoolOrExp) bool).exp1, attrlist, values),
+					this.replaceBoolExp(((BoolOrExp) bool).exp2, attrlist, values));
+		if(bool instanceof CompBoolExp){
+			CompBoolExp cbe=(CompBoolExp)bool;
+			if(cbe.v1 instanceof ColValue){
+				
+			}
+		}
+		return null;
+	}
+	public ConstValue transColValue(ColValue cv,List<Attr> attrlist,String [] values){
+		ColName colname=cv.name;
+		for(int i=0;i<attrlist.size();i++){
+			
+		}
+		return null;
 	}
 	public boolean calBoolExp(AllExp  allexp,List<Attr> attrlist,String [] values)
 	{
@@ -991,6 +1152,9 @@ public class Execute {
 		} 
 		Semant semant=new Semant(env);
 		Relation select=semant.transExp(allexp.select);
+		select=this.execute(select);
+		if(select==null)
+			return false;
 		String[] rows=select.results.split(";");
 		boolean flag=true;
 		for(int i=0;i<rows.length;i++)
@@ -1239,6 +1403,9 @@ public class Execute {
 		} 
 		Semant semant=new Semant(env);
 		Relation select=semant.transExp(anyexp.select);
+		select=this.execute(select);
+		if(select==null)
+			return false;
 		String[] rows=select.results.split(";");
 		boolean flag=false;
 		for(int i=0;i<rows.length;i++)
@@ -1308,7 +1475,35 @@ public class Execute {
 		}
 		return false; 
 	}
-
+	public Symbol reverseCop(Symbol comp){
+		Symbol s=null;
+		String cop=comp.toString();
+		if(cop.equals("LT"))
+		{
+			 return new Symbol("GT");
+		}
+		if(cop.equals("GT"))
+		{
+			return new Symbol("LT");
+		}
+		if(cop.equals("EQ"))
+		{
+			return new Symbol("EQ");
+		}
+		if(cop.equals("NEQ"))
+		{
+			return new Symbol("NEQ");
+		}
+		if(cop.equals("LE"))
+		{
+			return new Symbol("GE");
+		}
+		if(cop.equals("GE"))
+		{
+			return new Symbol("LE");
+		} 		 
+		return null;		
+	}
 	public boolean valueComp(String v1,Symbol comp,String v2)
 	{
 		String cop=comp.toString();
@@ -1409,8 +1604,9 @@ public class Execute {
 	{
 		try{
 			File attrfile=new File(DBInfo.DbMani.rootpath+env.database+"\\"+i.tablename+".attr");
-			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));
+			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));			
 			AttrList attrlist=(AttrList) ois.readObject();
+			ois.close();
 			//insert const value;
 			//List<Object> list = new ArrayList<Object>();
 			int currentlength=DBInfo.DbMani.readFile(env.database, i.tablename).split(";").length;
@@ -1423,7 +1619,7 @@ public class Execute {
 			HashIndex keyindex=null;
 			HashIndex hashindex=null;//=new HashIndex(env.database,i.tablename,attrlist1.attr.name,"");
 			IndexList indexlist=DBInfo.DbMani.getIndexList(env.database);
-			for(int j=0;j<indexlist.size();j++){
+			for(int j=0;indexlist!=null&&j<indexlist.size();j++){
 				Index index=indexlist.get(j);
 				if(index.table.equals(i.tablename)){
 					hashindex=new HashIndex(env.database,i.tablename,index.col,"");
@@ -1432,8 +1628,17 @@ public class Execute {
 			}
 			int keypos=-1;
 			int indexpos=-1;
+			int fkpos=-1;
+			ColName fr=null;
+			List<BoolExp> boollist=new ArrayList<BoolExp>();
 			while(attrlist1!=null)
 			{
+				if(attrlist1.attr.check!=null)
+				{
+					boollist.add(attrlist1.attr.check);
+					attrlist1=attrlist1.next;
+					continue;
+				}
 				attrarray.add(attrlist1.attr);
 				//
 				if(attrlist1.attr.key){
@@ -1441,6 +1646,10 @@ public class Execute {
 					keyindex.getData();	
 					//check key;
 					keypos=attrarray.size()-1;//back wards seq;
+				}
+				if(attrlist1.attr.fk){
+					fkpos=attrarray.size()-1;
+					fr=attrlist1.attr.foreign_key;
 				}
 				if(hashindex!=null&&attrlist1.attr.name.equals(hashindex.getCol())){
 					indexpos=attrarray.size()-1;
@@ -1457,8 +1666,15 @@ public class Execute {
 				
 				attrlist1=attrlist1.next;
 			}
+			if(fkpos!=-1)
+				fkpos=attrarray.size()-1-fkpos;
 			if(indexpos!=-1){
 				indexpos=attrarray.size()-1-indexpos;
+			}
+			List<Attr> nomalarr=new ArrayList<Attr>();
+			for(int mmm=attrarray.size()-1;mmm>=0;mmm--)
+			{
+				nomalarr.add(attrarray.get(mmm));
 			}
 			for(int mmm=attrarray.size()-1;mmm>=0;mmm--)
 			{
@@ -1521,14 +1737,15 @@ public class Execute {
 						}
 						ConstValue constvalue=constlist.value;
 						//check key
-						if(keypos==mmm){
-							if(keyindex.hasKey((constvalue).getValue())){
-								putError("key value should be unique",-1);
-								return null;
-							}
-							else
-								keyindex.addPos(( constvalue).getValue(), new Integer(-1));
-						}
+						//key 的检查推迟到后边插入时
+//						if(keypos==mmm){
+//							if(keyindex.hasKey((constvalue).getValue())){
+//								putError("key value:"+attrarray.get(mmm).name+"("+(constvalue).getValue()+") should be unique",-1);
+//								return null;
+//							}
+//							else
+//								keyindex.addPos(( constvalue).getValue(), new Integer(-1));
+//						}
 						
 						if(attr.type.type==Type.BOOL)
 							result+=((ConstValueBoolean)constvalue).getValue();
@@ -1550,6 +1767,9 @@ public class Execute {
 						result+=",";
 					}
 				} 
+			}
+			if(i.constvalue!=null){
+				
 			}
 			//select not yet implemented
 			if(i.select!=null)
@@ -1622,14 +1842,94 @@ public class Execute {
 						hashindex.addPos(ncols[indexpos], currentlength++);
 					}
 				}
+				if(boollist.size()!=0||keypos!=-1||fkpos!=-1){					
+					String []nrows=result.split(";");
+					result="";
+					for(int rown=0;rown<nrows.length;rown++){
+						boolean flag=true;
+						String []cols=nrows[rown].split(",");
+						for(int bool=0;bool<boollist.size();bool++){
+							BoolExp boolexp=boollist.get(bool);
+							flag=this.calBoolExp(boolexp, nomalarr, cols);
+							if(flag==false)
+								break;
+						}
+
+						if(flag)
+							result+=nrows[rown]+";";
+						else {
+							putError("value:"+nrows[rown]+"not inserted because of the check exp",-1);
+						}
+						if(keypos!=-1){
+							
+							
+							if (keyindex.hasKey(cols[cols.length-1-keypos])) {
+								putError("key value:" + attrarray.get(keypos).name
+										+ "(" + cols[cols.length-1-keypos]
+										+ ") should be unique", -1);
+								return null;
+							} else
+								keyindex.addPos(cols[cols.length-1-keypos],
+										new Integer(-1));
+						}
+						if(fkpos!=-1){
+							flag=this.addFK(cols[fkpos],fr );
+							if(!flag){
+								putError("error in adding:"+nrows[rown]+" foreign is not exist.",-1);
+								return null;
+							}
+						}
+					}
+				}
 				
-				DBInfo.DbMani.write(env.database, i.tablename,result, length,(totallength+attrarray.size()+1)*rows.length);
+				if(result.length()!=0)
+					DBInfo.DbMani.write(env.database, i.tablename,result, length,(totallength+attrarray.size()+1)*rows.length);
+				
 			}
 			//writetoFile;
 			
 			if(i.constvalue!=null)
 			{
 				result+=";";
+				if (boollist.size() != 0) {
+					
+					boolean flag = true;
+					for (int bool = 0; bool < boollist.size(); bool++) {
+						BoolExp boolexp = boollist.get(bool);
+						flag = this.calBoolExp(boolexp, nomalarr,
+								result.split(","));
+						if (flag == false)
+							break;
+					}
+
+					if (flag)
+						DBInfo.DbMani.write(env.database, i.tablename, result,
+								length, totallength + attrarray.size() + 1);
+					else {
+						putError("value:" + result
+								+ "not inserted because of the check exp", -1);
+						return null;
+					}					 
+				}
+				if(keypos!=-1){
+					String []cols=result.split(";")[0].split(",");
+					if (keyindex.hasKey(cols[cols.length-1-keypos])) {
+						putError("key value:" + attrarray.get(keypos).name
+								+ "(" + cols[cols.length-1-keypos]
+								+ ") should be unique", -1);
+						return null;
+					} else
+						keyindex.addPos(cols[cols.length-1-keypos],
+								new Integer(-1));
+				}
+				if(fkpos!=-1){
+					String []cols=result.split(";")[0].split(",");
+					boolean flag=this.addFK(cols[fkpos],fr );
+					if(!flag){
+						putError("error in adding:"+result+" foreign is not exist.",-1);
+						return null;
+					}
+				}
 				DBInfo.DbMani.write(env.database, i.tablename,result, length,totallength+attrarray.size()+1);
 			}
 			 
@@ -1646,6 +1946,28 @@ public class Execute {
 		i.results="insert ok.";
 		return i;
 	}
+	public boolean addFK(String fk,ColName FR){
+		HashIndex keyindex=new HashIndex(env.database,FR.table.toString()+".key",FR.col.toString(),FR.table.toString()+".key");
+		keyindex.getData();
+		if(!keyindex.hasKey(fk))
+			return false;
+		keyindex.addPos(fk, new Integer(-1));
+		keyindex.putData();
+		return true;		
+	}
+	public boolean deleteFK(String fk,ColName FR){
+		HashIndex keyindex=new HashIndex(env.database,FR.table.toString()+".key",FR.col.toString(),FR.table.toString()+".key");
+		keyindex.getData();
+		if(!keyindex.hasKey(fk))
+			return false;
+		int keysize=keyindex.posSize(fk);
+		if(keysize>1){
+			keyindex.deletePos(fk, new Integer(-1));
+			keyindex.putData();
+			return true;
+		}
+		return false;
+	}
 	public Relation execute(Update u)
 	{
 		try{
@@ -1653,28 +1975,35 @@ public class Execute {
 			File attrfile=new File(DBInfo.DbMani.rootpath+env.database+"\\"+u.tablename+".attr");
 			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));
 			AttrList attrlist=(AttrList) ois.readObject();
-			 	
+			ois.close();	
 			AttrList tmplist=attrlist;
 			int totallength=0; 
 			int affcted=0;
 			List<Attr> list=new ArrayList<Attr>();
 			while(tmplist!=null)
 			{ 
-				Type type=attrlist.attr.type;
-				if(type.type ==Type.BOOL)
-					totallength+=Type.BOOLSIZE;
-				else if(type.type==Type.INT)
-					totallength+=Type.INTSIZE;
-				else if(type.type==Type.CHAR)
-					totallength+=type.size;
-				list.add(tmplist.attr);
-				totallength+=1;
+				if(tmplist.attr.name!=null){
+					Type type=attrlist.attr.type;
+					if(type.type ==Type.BOOL)
+						totallength+=Type.BOOLSIZE;
+					else if(type.type==Type.INT)
+						totallength+=Type.INTSIZE;
+					else if(type.type==Type.CHAR)
+						totallength+=type.size;
+					list.add(tmplist.attr);
+					totallength+=1;	
+				}
 				tmplist=tmplist.next;
 			}
+			HashIndex keyindex=null;
+			HashIndex FKindex=null;
+			ColName fk=null;
 			Collections.reverse(list);
 			List<Integer> seq=new ArrayList<Integer>();
 			AssignList assignlist=u.assign;
 			List<ConstValue> constlist=new ArrayList<ConstValue>();
+			int keypos=-1;
+			int fkpos=-1;
 			while(assignlist!=null)
 			{
 				for(int i=0;i<list.size();i++)
@@ -1682,6 +2011,18 @@ public class Execute {
 					if(assignlist.first.var.toString().equals(list.get(i).name))
 					{
 						seq.add(i);
+						if(list.get(i).key)
+						{
+							keypos=seq.size()-1;
+							keyindex=new HashIndex(env.database,u.tablename+".key",list.get(i).name,u.tablename+".key");
+							keyindex.getData();
+						}
+						if(list.get(i).fk)
+						{
+							fkpos=seq.size()-1;
+							fk=list.get(i).foreign_key;
+							FKindex=new HashIndex(env.database,fk.table.toString()+".key",fk.col.toString(),fk.table.toString()+".key");
+						}
 						constlist.add((ConstValue)assignlist.first.value);
 					}
 				}
@@ -1696,11 +2037,46 @@ public class Execute {
 			for(int i=0;i<rows.length;i++)
 			{ 
 				String[] cols=rows[i].split(",");
-				if(u.bool!=null&&this.calBoolExp(u.bool, list,cols)){
-					affcted++;
+				if(u.bool==null||this.calBoolExp(u.bool, list,cols)){
+					
+					boolean flag=true;
 					for(int j=0;j<seq.size();j++)
 					{
+						//check key and fk;
+						if(keypos==j){
+							if(keyindex.posSize(cols[seq.get(j)])!=1){
+								putError("key value:"+cols[seq.get(j)]+"can not be changed because of foreign constranint.",-1);
+								flag=false;
+								break;
+							}
+							if(keyindex.hasKey(constlist.get(j).getValue().toString())){
+								putError("the value being changed to:"+constlist.get(j).getValue().toString()+" has already exists.",-1);
+								flag=false;
+								break;
+							}
+							keyindex.deletePos(cols[seq.get(j)], new Integer(-1));
+							keyindex.addPos(constlist.get(j).getValue().toString(),new Integer(-1));
+						}
+						if(fkpos==j){
+							//not implemented;
+							if(!FKindex.hasKey(constlist.get(j).getValue().toString())){
+								putError("invalide value("+constlist.get(j).getValue().toString()+") for fk:"+fk.toString(),-1);
+								flag=false;
+								break;
+							}
+							flag=this.deleteFK(cols[seq.get(j)], fk);
+							if(!flag)
+							{
+								putError("valide value("+cols[seq.get(j)]+")can not be deleted  for fk:"+fk.toString(),-1);
+								break;
+							}
+							this.addFK(constlist.get(j).getValue().toString(), fk);							
+						}
 						cols[seq.get(j)]=constlist.get(j).getValue().toString();
+					}
+					if(!flag){
+						finalresult+=rows[i]+";";
+						continue;
 					}
 					result="";
 					for(int j=0;j<cols.length;j++)
@@ -1709,6 +2085,7 @@ public class Execute {
 					}
 					result+=";";
 					finalresult+=result;
+					affcted++;
 				}
 				else
 					finalresult+=rows[i]+";";
@@ -1719,7 +2096,7 @@ public class Execute {
 			DBInfo.DbMani.write(env.database,u.tablename, finalresult, 0, finalresult.length());
 		}catch(Exception e)
 		{
-			putError(e.getMessage(),-1);			
+			putError(e.getMessage(),-1);
 		}
 		
 		return u;	
@@ -1731,6 +2108,7 @@ public class Execute {
 			File attrfile=new File(DBInfo.DbMani.rootpath+env.database+"\\"+al.tablename+".attr");
 			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(attrfile));
 			AttrList attrlist=(AttrList) ois.readObject();
+			ois.close();
 			int ptr=-1;
 			if(al.choice==Alter.ADD)
 			{

@@ -67,6 +67,7 @@ public class HashIndex
 					"\\"+this.table+".index");
 			ObjectOutputStream fout = new ObjectOutputStream(fin);
 			fout.writeObject(hash);
+			fout.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -82,6 +83,7 @@ public class HashIndex
 					"\\"+this.table+".index");
 			ObjectInputStream fout = new ObjectInputStream(fin);
 			this.hash=(IndexMap) fout.readObject();
+			fout.close();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace(); 
@@ -101,6 +103,10 @@ public class HashIndex
 			list=new ArrayList<Integer>();
 		list.add(o);
 		this.hash.put(key, list);
+	}
+	public int  posSize(Object key){
+		List list=(List) this.hash.get(key);
+		return list.size();
 	}
 	public void deletePos(Object key,Object o)
 	{

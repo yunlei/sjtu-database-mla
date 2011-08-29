@@ -15,7 +15,7 @@ public class Attr implements Serializable{
 	public boolean auto_incre;
 	public boolean key;
 	/**check**/
-	Absyn.BoolExp check;
+	public Absyn.BoolExp check;
 	
 	/***/
 	public boolean fk;
@@ -44,6 +44,14 @@ public class Attr implements Serializable{
 	}
 	public Attr(BoolExp check) {
 		this.check = check;
+		this.tableName =null;
+		this.name = null;
+		this.type = null;
+		this.not_null = false;
+		this.defaultValue =null;
+		this.auto_incre = false;
+		this.key = key;
+		this.fk = false;
 	}
 	 
 	

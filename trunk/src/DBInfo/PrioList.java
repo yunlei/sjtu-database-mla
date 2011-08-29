@@ -1,17 +1,10 @@
 package DBInfo;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 
-public class PrioList implements Serializable {
+public class PrioList extends ArrayList<UserPrio> implements Serializable {
 	/**
 	 * 
-	 */
-	private static final long serialVersionUID = 21L;
-	UserPrio prio;
-	PrioList next;
-	public PrioList(UserPrio prio, PrioList next) {
-		this.prio = prio;
-		this.next = next;
-	}
-	
+	 */ 
 }

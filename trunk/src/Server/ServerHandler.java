@@ -26,18 +26,18 @@ public class ServerHandler extends Thread{
 			
 			command = receive();
 			
-			if(command.substring(0,4).equals("user")){
+			if(command.length()>=4 && command.substring(0,4).equals("user")){
 				String sub = command.substring(4);
 				String [] userMessage = sub.split("!");
 				user = userMessage[0];
 				password = userMessage[1];
 				database = userMessage[2];
-				System.out.println("User:" + user + "  Password:" + password + "Database:" + database);
+				System.out.println("User:" + user + "  Password:" + password + " Database:" + database);
 				//检验用户登录信息
 				
 				send("yes");
 			}
-			else if(command.substring(0,8).equals("register")){
+			else if(command.length()>=8 && command.substring(0,8).equals("register")){
 				String sub = command.substring(8);
 				String [] userMessage = sub.split("!");
 				user = userMessage[0];
@@ -48,12 +48,7 @@ public class ServerHandler extends Thread{
 				send("yes");
 			}
 			else{
-				if( command.equalsIgnoreCase("save") ){
-					//save();????
-					System.out.println("save-yes");
-					send("yes");
-				}
-				else if( command.equalsIgnoreCase("exit") ){
+				if( command.equalsIgnoreCase("exit") ){
 					//用户管理???
 					System.out.println("exit-yes");
 					
@@ -63,6 +58,7 @@ public class ServerHandler extends Thread{
 					
 					//TranslateDriver translateDriver = new TranslateDriver(commond);
 					//send(translateDriver.translateDriver(user));
+					send("yes");
 				}
 			}
 		}catch(IOException e){

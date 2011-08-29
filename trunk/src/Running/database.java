@@ -1,4 +1,5 @@
 package Running;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,34 +18,50 @@ import ErrorMsg.ErrorMsg;
 import Parse.*;
  
 public class database {
-	public static  void runing() throws IOException
+	public String username;
+	public String database;
+	
+	public database(String username, String database) {
+		this.username = username;
+		this.database = database;
+	}
+	 
+	public static  void runing(String inputStr) throws IOException
 	{
 		try {
+			//InputStream input=new ByteArrayInputStream(inputStr.getBytes());
 			FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\øŒ≥Ã…Ëº∆\\testcase", "txt"));
 			Lexer lexer=new Lexer(input);
 			SymbolFactory sf=new DefaultSymbolFactory();
 			AdvancedParser parser=new AdvancedParser(lexer,sf);
-			DBInfo.DbMani.addUser("admin", "admin");
+			//DBInfo.DbMani.addUser("admin", "admin");
 			Exp result=(Exp) parser.parse().value; 
 			print.printExp(result);
 			Env env=new Env("myl",null);
 			Semant semant=new Semant(env);
-			RelaList list=semant.transSQLs((SQLList)result);
-			if(semant.hasError())
-			{
-				semant.printError();
-				println("execution is stoped because of the semantic error.see the log");
-				return ;
+			SQLList sqlList=(SQLList)result;
+			while(sqlList!=null){
+
+				RelaList list=semant.transSQLs(new SQLList(sqlList.first,null));
+				if(semant.hasError())
+				{
+					semant.printError();
+					println("execution is stoped because of the semantic error.see the log");
+					return ;
+				}
+				Execute.Execute exe=new Execute.Execute(env);
+				String strres=exe.execute(list);
+				if(exe.hasError())
+				{
+					exe.printError();					 
+				}
+				else {
+					strres=strres.replaceAll(";", "\n");
+					System.out.print(strres);
+				}
+				
+				sqlList=sqlList.next;
 			}
-			Execute.Execute exe=new Execute.Execute(env);
-			String strres=exe.execute(list);
-			if(exe.hasError())
-			{
-				exe.printError();
-				return ;
-			}
-			strres=strres.replaceAll(";", "\n");
-			System.out.print(strres);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -38,7 +38,7 @@ public class print {
 		// TODO Auto-generated method stub
 		print("grant   ");
 		printPrivileges(e.p);
-		printNameList(e.database_list);
+		printNameList(e.table_list);
 		print(" to ");
 		printNameList(e.user_list);
 		if(e.WithOption)

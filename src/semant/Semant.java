@@ -517,9 +517,10 @@ public class Semant{
 		}
 		return true;
 	}
-	public boolean colNameInCrossUnion(ColName colname,CrossJoin u,int pos)
+	public boolean colNameInCrossUnion(ColName colname,CrossJoin u1,int pos)
 	{
 		boolean flag=false;
+		CrossJoin u=u1;
 		while(u!=null&&!flag)
 		{ 
 			{ 
@@ -972,7 +973,7 @@ public class Semant{
 					}
 					if(!flag)
 					{
-						putError("fk:"+fkd.fk.col.toString()+" is not a primary key.",fkd.pos);
+						putError("fk:"+fkd.fk.toString()+" is not a primary key.",fkd.pos);
 						return null;
 					}
 					tmpList.attr.foreign_key=new ColName(fkd.fk.table.toString(),fkd.fk.col.toString());

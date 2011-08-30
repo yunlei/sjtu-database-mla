@@ -26,17 +26,17 @@ public class database {
 		this.database = database;
 	}
 	 
-	public static  void runing(String inputStr) throws IOException
+	public static  void runing(InputStream input) throws IOException
 	{
 		try {
 			//InputStream input=new ByteArrayInputStream(inputStr.getBytes());
-			FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\课程设计\\testcase", "txt"));
+			//FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\课程设计\\testcase", "txt"));
 			Lexer lexer=new Lexer(input);
 			SymbolFactory sf=new DefaultSymbolFactory();
 			AdvancedParser parser=new AdvancedParser(lexer,sf);
 			//DBInfo.DbMani.addUser("admin", "admin");
 			Exp result=(Exp) parser.parse().value; 
-			print.printExp(result);
+		//	print.printExp(result);
 			Env env=new Env("myl",null);
 			Semant semant=new Semant(env);
 			SQLList sqlList=(SQLList)result;
@@ -64,7 +64,10 @@ public class database {
 			}
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			StackTraceElement [] ste=e.getStackTrace();
+			for(int i=0;i<ste.length;i++){
+				System.out.print(ste);
+			}
 		}
 		
 	}

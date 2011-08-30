@@ -1042,8 +1042,8 @@ public class Execute {
 		AttrList attrlist1=select.attrlist;
 		if(attrlist1==null||attrlist1.next!=null)
 		{
-			putError("subquery in (in exp)should has only one column.",-1);
-			return false;
+			throw new Exception("subquery in (in exp)should has only one column.");
+			
 		}
 		boolean isin=false;
 		Attr attr=attrlist1.attr;

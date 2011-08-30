@@ -17,7 +17,7 @@ public class Lexer implements java_cup.runtime.Scanner{
 		this.haserror=false;
 		while(true){
 			java_cup.runtime.Symbol symbol=yylex.nextToken();
-			System.out.print(symbol+"\n");
+			//System.out.print(symbol+"\n");
 			if(symbol.sym==sym.ERROR)
 			{
 				report_error(symbol);

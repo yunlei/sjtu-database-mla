@@ -46,26 +46,33 @@ public class database {
 			SQLList sqlList=(SQLList)result;
 			//List<ErrorList> errorlist=new ArrayList<ErrorList>();
 			while(sqlList!=null){
-
-				RelaList list=semant.transSQLs(new SQLList(sqlList.first,null));
-				if(semant.hasError())
-				{
-					semant.printError();
-					//errorlist.add(semant.getErrorlist());
-					//println("execution is stoped because of the semantic error.see the log");
-					userresult+="ERROR "+semant.getErrorlist().toString();
+				try{
+					RelaList list=semant.transSQLs(new SQLList(sqlList.first,null));
+					if(semant.hasError())
+					{
+						semant.printError();
+						//errorlist.add(semant.getErrorlist());
+						//println("execution is stoped because of the semantic error.see the log");
+						userresult+="ERROR "+semant.getErrorlist().toString();
+					}
+					else{
+						Execute.Execute exe=new Execute.Execute(env);
+						String strres=exe.execute(list);
+						if(exe.hasError())
+						{
+							exe.printError();
+							//errorlist.add(exe.getErrorlist());
+							userresult+="ERROR "+exe.getErrorlist().toString();
+						}
+						else {
+							//strres=strres.replaceAll(";", "\n");
+							userresult+=strres;
+						}
+					}
 				}
-				Execute.Execute exe=new Execute.Execute(env);
-				String strres=exe.execute(list);
-				if(exe.hasError())
-				{
-					exe.printError();
-					//errorlist.add(exe.getErrorlist());
-					userresult+="ERROR "+exe.getErrorlist().toString();
-				}
-				else {
-					//strres=strres.replaceAll(";", "\n");
-					userresult+=strres;
+				catch (Exception e) {
+					// TODO Auto-generated catch block
+					 userresult+="ERROR "+e.getMessage()+"<SQL>";
 				}
 				sqlList=sqlList.next;
 			}

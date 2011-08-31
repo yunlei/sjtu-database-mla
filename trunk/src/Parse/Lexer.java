@@ -11,10 +11,10 @@ public class Lexer implements java_cup.runtime.Scanner{
 	private boolean haserror;
 	
 	private int ptr;
-	public Lexer(InputStream input) throws IOException{
+	public Lexer(InputStream input) throws Exception{
 		 
 		yylex=new Yylex(input);
-		this.haserror=false;
+		this.haserror=false; 
 		while(true){
 			java_cup.runtime.Symbol symbol=yylex.nextToken();
 			//System.out.print(symbol+"\n");
@@ -44,10 +44,11 @@ public class Lexer implements java_cup.runtime.Scanner{
 			return true;
 		return false;
 	}
-	public void report_error(java_cup.runtime.Symbol symbol  )
+	public void report_error(java_cup.runtime.Symbol symbol  ) throws Exception
 	{
 		this.haserror=true;
 		System.out.print("lexical error @"+symbol.left+":"+symbol.value);
+		throw new Exception("lexical error @"+symbol.left+":"+symbol.value);
 	}
 	public boolean hasError()
 	{

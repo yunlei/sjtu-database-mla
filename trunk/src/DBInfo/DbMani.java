@@ -38,7 +38,7 @@ public class DbMani {
 	public static  PrioList getPrioList(){
 		File file=new File(rootpath+"system" +"\\priority.list");
 		if(!file.exists())
-			return null;
+			return new PrioList();
 		ObjectInputStream ois;
 		try {
 			 ois = new ObjectInputStream(new FileInputStream(file)); 
@@ -75,6 +75,19 @@ public class DbMani {
 			e.printStackTrace();
 		}
 		
+	}
+	public static int getPrio(String username,String table){
+		PrioList priolist=getPrioList();
+		int priority = 0;
+		if(username.equals("admin"))
+			return UserPrio.GRANT|UserPrio.INSERT|UserPrio.SELECT|UserPrio.UPDATE;
+		for(int i=0;i<priolist.size();i++){
+			if(priolist.get(i).username.equals(username)&&
+					priolist.get(i).tablename.equals(table)){
+				priority=priolist.get(i).getPriority();
+			}
+		}
+		return priority;
 	}
 	public static void addUserPrio(UserPrio p){
 		PrioList list=getPrioList();
@@ -117,6 +130,8 @@ public class DbMani {
 		return false; 
 	}
 	public static boolean CheckPrio(String tablename ,String username,int Prio){
+		if(username.equals("admin"))
+			return true;
 		PrioList pList=getPrioList();
 		if(pList==null)
 			return false;

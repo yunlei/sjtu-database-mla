@@ -9,6 +9,7 @@ import Alge.*;
  
 import DBInfo.Index;
 import DBInfo.IndexList;
+import DBInfo.UserPrio;
 import DBInfo.View;
 import DBInfo.ViewList;
 import ErrorMsg.ErrorList;
@@ -47,7 +48,7 @@ public class Semant{
 	{
 		error_list=new ErrorList(new ErrorMsg( loc,msg),error_list);
 	}
-	public Relation transExp(Exp e)
+	public Relation transExp(Exp e) throws Exception
 	{
 		 
 		 Relation  result = null;
@@ -247,6 +248,7 @@ public class Semant{
 				putError("user :"+userlist.name.toString()+" doesnot exists.",e.pos);
 				return null;
 			}
+			userlist=userlist.next;
 		}
 		int priority=0;
 		Privileges Pris=e.p;
@@ -258,6 +260,7 @@ public class Semant{
 				priority|=DBInfo.UserPrio.INSERT;
 			if(p.privilege.toString().equalsIgnoreCase("UPDATE"))
 				priority|=DBInfo.UserPrio.UPDATE;
+			Pris=Pris.next;
 		}
 		if(e.WithOption)
 			priority|=DBInfo.UserPrio.GRANT;
@@ -292,6 +295,11 @@ public class Semant{
 		if(attrlist==null)
 		{
 			putError("table:"+e.name.toString()+" not found.",e.pos);
+			return null;
+		}
+		if(!DBInfo.DbMani.CheckPrio(e.name.toString(),env.user, UserPrio.UPDATE))
+		{
+			putError("the user has no priority to delete table:"+e.name,e.pos);
 			return null;
 		}
 		AssignList assignlist=e.assign;
@@ -364,6 +372,11 @@ public class Semant{
 	{
 		if(!checkDB(e)) 
 			return null;
+		if(!DBInfo.DbMani.CheckPrio(e.name.toString(),env.user, UserPrio.GRANT|UserPrio.INSERT|UserPrio.SELECT|UserPrio.UPDATE))
+		{
+			putError("the user has no priority to delete table:"+e.name,e.pos);
+			return null;
+		}
 		String tablename=e.name.toString();
 		if(e.exp!=null)
 		{
@@ -405,15 +418,16 @@ public class Semant{
 		env.database=e.name.toString();
 		return new UseDB(e.name.toString());
 	}
-	public Relation transExp(SelectExp s)
+	public Relation transExp(SelectExp s) throws Exception
 	{ 
 		if(!checkDB(s)) 
 			return null;
+		
 		Relation table=transFrom(s.fromclause.tablereflist);
 		if(s.havingclause!=null&&s.groupclause==null)
 		{
 			putError("having clause must be appended after group cluase",s.pos);
-			return null;
+			return null; 
 		} 
 		//check where select attr is in the table
 		int selectNum=0;
@@ -549,7 +563,7 @@ public class Semant{
 		}			
 		return flag;
 	}
-	private CrossJoin transFrom(TableRefList tl) {
+	private CrossJoin transFrom(TableRefList tl) throws Exception {
 		// TODO Auto-generated method stub 
 		if(tl==null)
 			return null;
@@ -569,6 +583,11 @@ public class Semant{
 				while(tmp!=null){
 					orderlist=new AttrList(tmp.attr,orderlist);
 					tmp=tmp.next;
+				}
+				if(!DBInfo.DbMani.CheckPrio(tl.tableref.name.toString(),env.user, UserPrio.SELECT))
+				{
+					throw new Exception("the user has no priority to insert table:"+tl.tableref.name);
+					 
 				}
 				r1.attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
 				r1.results=DBInfo.DbMani.readFile(env.database, tl.tableref.name.toString());
@@ -658,10 +677,15 @@ public class Semant{
 		return true;
 	}
 	 
-	public Relation transExp(InsertExp e)
+	public Relation transExp(InsertExp e) throws Exception
 	{
 		if(!checkDB(e)) 
 			return null;
+		if(!DBInfo.DbMani.CheckPrio(e.name.toString(),env.user, UserPrio.INSERT))
+		{
+			putError("the user has no priority to insert table:"+e.name,e.pos);
+			return null;
+		}
 		/*sort the namelist according to the defination */
 		NameList namelist=e.namelist;
 		String tablename=e.name.toString();
@@ -783,7 +807,7 @@ public class Semant{
 			return "String";
 		return "unknown type of const value:"+cv.getValue();
 	}
-	public RelaList transSQLs(SQLList e)
+	public RelaList transSQLs(SQLList e) throws Exception
 	{ 
 		if(e==null)
 			return null;
@@ -791,7 +815,7 @@ public class Semant{
 		RelaList ne=transSQLs(((SQLList) e).next);
 		return new RelaList(r1,ne);
 	}
-	public Relation transExp(CreateExp ce)
+	public Relation transExp(CreateExp ce) throws Exception
 	{
  
 		if(ce instanceof CreateDatabaseExp)

@@ -10,7 +10,8 @@ public class ErrorList {
 	public String toString(){
 		if(msg==null)
 			return "";
-		return msg.toString()+next.toString();
+		
+		return msg.toString()+(next!=null?next.toString():"");
 	}
 	public ErrorList( ) {
 		 

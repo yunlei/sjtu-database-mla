@@ -182,17 +182,12 @@ public class Execute {
 		while(tablelist!=null){
 			String table=tablelist.name.toString();
 			//get current user's priority
-			int priority = -1;
-			for(int i=0;i<priolist.size();i++){
-				if(priolist.get(i).username.equals(env.user)&&
-						priolist.get(i).tablename.equals(table)){
-					priority=priolist.get(i).getPriority();
-				}
-			}
-			if(priority==-1){
+			int priority =DBInfo.DbMani.getPrio(env.user, table);
+			 
+			if(priority==0){
 				putError("user:"+env.user+" has no priority to table:"+table,-1);				
 			}
-			else if((priority&DBInfo.UserPrio.GRANT)==0){
+			else if(!DBInfo.DbMani.CheckPrio(table, env.user, DBInfo.UserPrio.GRANT)){
 				putError("user:"+env.user+" has no grant priority for table:"+table,-1);
 			}
 			else{
@@ -1247,7 +1242,7 @@ public class Execute {
 		putError("unknown problem.",-1);
 		return false;	
 	}
-	public boolean calBoolExp(BoolExsitExp boolexsitexp,List<Attr> attrlist,String [] values)
+	public boolean calBoolExp(BoolExsitExp boolexsitexp,List<Attr> attrlist,String [] values) throws Exception
 	{
 		Semant semant=new Semant(env);
 		SelectExp select_exp=(SelectExp) common.Op.copy(boolexsitexp.select);
@@ -1317,7 +1312,7 @@ public class Execute {
 		}
 		return new ConstValueNull();
 	}
-	public boolean calBoolExp(AllExp  allexp,List<Attr> attrlist,String [] values)
+	public boolean calBoolExp(AllExp  allexp,List<Attr> attrlist,String [] values) throws Exception
 	{
 		//attrlist and values have the same numbers of value;
 //		if(!(allexp.value instanceof ConstValueInt))
@@ -1590,7 +1585,7 @@ public class Execute {
 			return v1%v2;		
 		return -1;
 	}
-	public boolean calBoolExp(AnyExp  anyexp,List<Attr> attrlist,String [] values)
+	public boolean calBoolExp(AnyExp  anyexp,List<Attr> attrlist,String [] values) throws Exception
 	{
 		//attrlist and values have the same numbers of value;
 //		if(!(anyexp.value instanceof ConstValueInt))
@@ -2463,6 +2458,8 @@ public class Execute {
 				attrlist=attrlist.next;
 			}
 			ct.results="create table :"+ct.tableName;
+			//add prio;
+			DBInfo.DbMani.addUserPrio(new UserPrio(env.user,ct.tableName,UserPrio.GRANT|UserPrio.INSERT|UserPrio.SELECT|UserPrio.UPDATE));
 			return ct;
 		}
 		catch(Exception e)

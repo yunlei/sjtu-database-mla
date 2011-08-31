@@ -42,6 +42,10 @@ public class Execute {
 	{
 		return errorlist!=null;
 	}
+	
+	public ErrorList getErrorlist() {
+		return errorlist;
+	}
 	public void printError()
 	{
 		ErrorList tmp=errorlist;
@@ -56,10 +60,10 @@ public class Execute {
 		}
 		System.out.print("*********************ERROR*END******************\n");
 	}
-	public String execute(RelaList list)
+	public String execute(RelaList list) throws Exception
 	{
 		if(list==null)
-			return "";
+			return ""; 
 		Relation  r1=execute(list.first);
 		String str1 = "";
 		if(r1==null)
@@ -73,21 +77,23 @@ public class Execute {
 					||r1 instanceof Sigma
 					||r1 instanceof Gamma)
 			{
-				
+				if(r1.results.equals(""))
+					throw new Exception("null result returned");
+				str2="TABLE";
 				AttrList attrlist=r1.attrlist;
 				while(attrlist!=null){
 					str2+=attrlist.attr.name+',';
 					attrlist=attrlist.next;
 				}
-				str2+="\n";
+				str2+="<head>";
 				
 			}
-			str1=str2+r1.results+"\n";
+			str1=str2+r1.results;
 			
 			 
 		}
 		
-		return str1+execute(list.next);		
+		return str1+execute(list.next)+"<SQL>";		
 	}
 	public void putError(String msg,int loc)
 	{
@@ -210,7 +216,7 @@ public class Execute {
 			}
 			tablelist=tablelist.next;
 		}
-		
+		DBInfo.DbMani.putPrioList(priolist);
 		g.results="grant ok.";
 		return g;
 	}
@@ -419,18 +425,22 @@ public class Execute {
 			list.add(attrlist.attr);
 			attrlist=attrlist.next;
 		}
-		String[] rows=sigma.relation.results.split(";");
 		String result="";
-		for(int i=0;i<rows.length;i++)
-		{
-			try{
-				if(sigma.condition==null||this.calBoolExp(sigma.condition.boolExp, list, rows[i].split(",")))
-				{
-					result+=rows[i]+";";
+		if(sigma.condition==null)
+			result=sigma.relation.results;
+		else {
+			String[] rows=sigma.relation.results.split(";");					
+			for(int i=0;i<rows.length;i++)
+			{
+				try{
+					if(sigma.condition==null||this.calBoolExp(sigma.condition.boolExp, list, rows[i].split(",")))
+					{
+						result+=rows[i]+";";
+					}
 				}
-			}
-			catch(Exception e){
-				putError(e.getMessage(),-1);
+				catch(Exception e){
+					putError(e.getMessage(),-1);
+				}
 			}
 		}
 		sigma.attrlist=(AttrList) common.Op.copy(sigma.relation.attrlist);
@@ -831,30 +841,32 @@ public class Execute {
 				list.add(attrlist.attr);
 				attrlist=attrlist.next;
 			}
-			result+="Field\t| Type\t| Null\t| Key\t|Default\t|Extra\n";
+			result+="TABLE Field, Type\t, Null, Key,|Default,|Extra<head>";
 			for(int i=list.size()-1;i>=0;i--)
 			{
 				Attr attr=list.get(i);
 				if(attr.check!=null)
 					continue;
-				result+=attr.name+"	|";
+				result+=attr.name+",";
 				if(attr.type.type==Type.INT) result+="INT";
 				if(attr.type.type==Type.CHAR) result+="CHAR("+attr.type.size+")";
 				if(attr.type.type==Type.BOOL)result+="BOOLEAN";
 				if(attr.type.type==Type.FLOAT) result+="FLOAT";
-				result+="\t|";
-				if(attr.not_null) result+="not null	|";
-				else result+="null	|";
-				if(attr.key) result+="PRIMARY	|";
-				else result+="	|";
+				result+=",";
+				if(attr.not_null) result+="not null,";
+				else result+="null,";
+				if(attr.key) result+="PRIMARY,";
+				else result+="not key,";
 				if(attr.defaultValue!=null)
 					result+=attr.defaultValue.getValue();
 				else
-					result+="\t";
-				result+="	|";
+					result+="null,";
+				
 				if(attr.auto_incre)
-					result+="auto-incre";
-				result+="\n";
+					result+="auto-incre,";
+				else result+="null";
+				result+=";";
+				
 				 
 			} 
 			namelist=namelist.next;

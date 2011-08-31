@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import semant.Env;
 import semant.Semant;
@@ -14,6 +16,7 @@ import java_cup.runtime.SymbolFactory;
 import Absyn.Exp;
 import Absyn.SQLList;
 import Alge.RelaList;
+import ErrorMsg.ErrorList;
 import ErrorMsg.ErrorMsg;
 import Parse.*;
  
@@ -26,10 +29,11 @@ public class database {
 		this.database = database;
 	}
 	 
-	public static  void runing(InputStream input) throws IOException
+	public static  String  runing(String  inputStr,String db,String username) throws IOException
 	{
+		String userresult="";
 		try {
-			//InputStream input=new ByteArrayInputStream(inputStr.getBytes());
+			InputStream input=new ByteArrayInputStream(inputStr.getBytes());
 			//FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\øŒ≥Ã…Ëº∆\\testcase", "txt"));
 			Lexer lexer=new Lexer(input);
 			SymbolFactory sf=new DefaultSymbolFactory();
@@ -37,38 +41,41 @@ public class database {
 			//DBInfo.DbMani.addUser("admin", "admin");
 			Exp result=(Exp) parser.parse().value; 
 		//	print.printExp(result);
-			Env env=new Env("myl",null);
+			Env env=new Env(username,db);
 			Semant semant=new Semant(env);
 			SQLList sqlList=(SQLList)result;
+			//List<ErrorList> errorlist=new ArrayList<ErrorList>();
 			while(sqlList!=null){
 
 				RelaList list=semant.transSQLs(new SQLList(sqlList.first,null));
 				if(semant.hasError())
 				{
 					semant.printError();
-					println("execution is stoped because of the semantic error.see the log");
-					return ;
+					//errorlist.add(semant.getErrorlist());
+					//println("execution is stoped because of the semantic error.see the log");
+					userresult+="ERROR "+semant.getErrorlist().toString();
 				}
 				Execute.Execute exe=new Execute.Execute(env);
 				String strres=exe.execute(list);
 				if(exe.hasError())
 				{
-					exe.printError();					 
+					exe.printError();
+					//errorlist.add(exe.getErrorlist());
+					userresult+="ERROR "+exe.getErrorlist().toString();
 				}
 				else {
-					strres=strres.replaceAll(";", "\n");
-					System.out.print(strres);
+					//strres=strres.replaceAll(";", "\n");
+					userresult+=strres;
 				}
-				
 				sqlList=sqlList.next;
 			}
+			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			StackTraceElement [] ste=e.getStackTrace();
-			for(int i=0;i<ste.length;i++){
-				System.out.print(ste);
-			}
+			 userresult+="ERROR "+e.getMessage()+"<SQL>";
 		}
+		println(userresult);
+		return userresult;
 		
 	}
 	public static void println(String str)

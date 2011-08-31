@@ -16,14 +16,14 @@ public class databaseTest {
 	  public static void main(String args[])
 	  {
 		  try {
-			  File file=new File("G:\\slide\\db\\课程设计\\testcase");
-			  File[] files=file.listFiles();
-			  for(int i=0;i<files.length;i++){
-				  print(files[i].getName()+"\n");
-				  database.runing(new FileInputStream(files[i]));
-			  }
-			  
-//		 	database.runing(null);
+//			  File file=new File("G:\\slide\\db\\课程设计\\testcase");
+//			  File[] files=file.listFiles();
+//			  for(int i=0;i<files.length;i++){
+//				  print(files[i].getName()+"\n");
+//				  database.runing(new FileInputStream(files[i]));
+//			  }
+	//		 String str="use db;";
+ 		 	database.runing(null,null,null);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -7,6 +7,11 @@ public class ErrorList {
 		this.msg = msg;
 		this.next = next;
 	}
+	public String toString(){
+		if(msg==null)
+			return "";
+		return msg.toString()+next.toString();
+	}
 	public ErrorList( ) {
 		 
 	}

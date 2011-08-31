@@ -57,7 +57,7 @@ public class DbMani {
 		}
 		return null;
 	}
-	public static void putPrioLit(PrioList pl){
+	public static void putPrioList(PrioList pl){
 		File file=new File(rootpath+"system" +"\\priority.list");
 		try {
 			if(!file.exists())
@@ -75,6 +75,11 @@ public class DbMani {
 			e.printStackTrace();
 		}
 		
+	}
+	public static void addUserPrio(UserPrio p){
+		PrioList list=getPrioList();
+		list.add(p);
+		putPrioList(list);
 	}
 	public static boolean hasTable(String db,String tablename){		
 		File file=new File(rootpath+db+"\\"+tablename+".attr");
@@ -110,6 +115,19 @@ public class DbMani {
 			e.printStackTrace();
 		}
 		return false; 
+	}
+	public static boolean CheckPrio(String tablename ,String username,int Prio){
+		PrioList pList=getPrioList();
+		if(pList==null)
+			return false;
+		for(int i=0;i<pList.size();i++){
+			UserPrio up=pList.get(i);
+			if(up.tablename.equals(tablename)&&up.username.equals(username)){
+				if((up.priority&Prio)!=0)
+					return true;
+			}
+		}
+		return false;
 	}
 	public static boolean checkUser(String name,String pw){
 		File file = new File(rootpath + "system" + "\\user.list");

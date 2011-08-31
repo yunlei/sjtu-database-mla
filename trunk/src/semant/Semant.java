@@ -25,6 +25,10 @@ public class Semant{
 	{
 		return error_list!=null;
 	}
+
+	public ErrorList getErrorlist() {
+		return error_list;
+	}
 	public void printError()
 	{
 		ErrorList tmp=error_list;

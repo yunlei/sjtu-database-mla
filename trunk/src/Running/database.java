@@ -43,28 +43,29 @@ public class database {
 			Exp result=(Exp) parser.parse().value; 
 		//	print.printExp(result);
 			Env env=new Env(username,db);
-			Semant semant=new Semant(env);
-			Execute.Execute exe=new Execute.Execute(env);
+			
+			
 			SQLList sqlList=(SQLList)result;
 			//List<ErrorList> errorlist=new ArrayList<ErrorList>();
 			while(sqlList!=null){
 				try{
+					Semant semant=new Semant(env);
 					RelaList list=semant.transSQLs(new SQLList(sqlList.first,null));
 					if(semant.hasError())
 					{
 						semant.printError();
 						//errorlist.add(semant.getErrorlist());
 						//println("execution is stoped because of the semantic error.see the log");
-						
+						userresult+=semant.getErrorlist().toString();
 					}
 					else{
-						
+						Execute.Execute exe=new Execute.Execute(env);
 						String strres=exe.execute(list);
 						if(exe.hasError())
 						{
 							exe.printError();
 							//errorlist.add(exe.getErrorlist());
-							
+							userresult+=exe.getErrorlist().toString();
 						}
 						else {
 							//strres=strres.replaceAll(";", "\n");
@@ -78,10 +79,7 @@ public class database {
 				}
 				sqlList=sqlList.next;
 			}
-			if(semant.hasError())
-				userresult+=semant.getErrorlist().toString();
-			if(exe.hasError())
-				userresult+=exe.getErrorlist().toString();
+		 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			 userresult+="ERROR "+e.getMessage()+"<SQL>";

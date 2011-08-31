@@ -615,7 +615,7 @@ public class Semant{
 							viewlist=viewlist.next;
 						}
 						if(viewlist==null)
-							throw new Exception("view "+tl.tableref.name.toString()+"not found.");	
+							throw new Exception("name:"+tl.tableref.name.toString()+" not found(neither a table or a view).");		
 					}
 				}
 				catch(Exception e)

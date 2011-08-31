@@ -36,6 +36,7 @@ public class database {
 			InputStream input=new ByteArrayInputStream(inputStr.getBytes());
 			//FileInputStream input=new FileInputStream(getFile.getFile("G:\\slide\\db\\øŒ≥Ã…Ëº∆\\testcase", "txt"));
 			Lexer lexer=new Lexer(input);
+			println(inputStr);
 			SymbolFactory sf=new DefaultSymbolFactory();
 			AdvancedParser parser=new AdvancedParser(lexer,sf);
 			//DBInfo.DbMani.addUser("admin", "admin");
@@ -43,6 +44,7 @@ public class database {
 		//	print.printExp(result);
 			Env env=new Env(username,db);
 			Semant semant=new Semant(env);
+			Execute.Execute exe=new Execute.Execute(env);
 			SQLList sqlList=(SQLList)result;
 			//List<ErrorList> errorlist=new ArrayList<ErrorList>();
 			while(sqlList!=null){
@@ -53,16 +55,16 @@ public class database {
 						semant.printError();
 						//errorlist.add(semant.getErrorlist());
 						//println("execution is stoped because of the semantic error.see the log");
-						userresult+="ERROR "+semant.getErrorlist().toString();
+						
 					}
 					else{
-						Execute.Execute exe=new Execute.Execute(env);
+						
 						String strres=exe.execute(list);
 						if(exe.hasError())
 						{
 							exe.printError();
 							//errorlist.add(exe.getErrorlist());
-							userresult+="ERROR "+exe.getErrorlist().toString();
+							
 						}
 						else {
 							//strres=strres.replaceAll(";", "\n");
@@ -76,7 +78,10 @@ public class database {
 				}
 				sqlList=sqlList.next;
 			}
-			
+			if(semant.hasError())
+				userresult+=semant.getErrorlist().toString();
+			if(exe.hasError())
+				userresult+=exe.getErrorlist().toString();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			 userresult+="ERROR "+e.getMessage()+"<SQL>";

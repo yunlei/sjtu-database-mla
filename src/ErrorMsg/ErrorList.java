@@ -11,7 +11,7 @@ public class ErrorList {
 		if(msg==null)
 			return "";
 		
-		return msg.toString()+(next!=null?next.toString():"");
+		return (next!=null?next.toString():"")+"ERROR "+msg.toString()+"<SQL>";
 	}
 	public ErrorList( ) {
 		 

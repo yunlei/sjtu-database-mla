@@ -853,7 +853,7 @@ public class Execute {
 				if(attr.key) result+="PRIMARY,";
 				else result+="not key,";
 				if(attr.defaultValue!=null)
-					result+=attr.defaultValue.getValue();
+					result+=attr.defaultValue.getValue()+",";
 				else
 					result+="null,";
 				
@@ -1004,10 +1004,10 @@ public class Execute {
 	}
 	public boolean calBoolExp(LikeEscapeExp exp,List<Attr> attrlist,String [] values){
 		String str=exp.likestring;
-		str=str.replace("%", "(.)*");
+		str=str.replace("%", ".*");
 		str=str.replace("_", ".");
 		if(exp.escape_or_not){
-			str=str.replaceAll(exp.escapestring+"(.)*", "%");
+			str=str.replaceAll(exp.escapestring+".*", "%");
 			str=str.replaceAll(exp.escapestring+".", "_");
 		}
 		int ptr=-1;
@@ -1016,7 +1016,7 @@ public class Execute {
 			for(int i=0;i<attrlist.size();i++){
 				Attr attr=attrlist.get(i);
 				if(attr.name.equals(colname.col.toString())&&
-						(attr.tableName==null||attr.tableName.equals("")
+						(colname.table==null||colname.table.toString().equals("")
 								||attr.tableName.equals(colname.table.toString()))){
 					ptr=i;
 					break;
@@ -1026,7 +1026,7 @@ public class Execute {
 				putError("type of "+colname.toString()+" is not string ("+this.transType(attrlist.get(ptr).type)+").",-1);
 				return false;
 			}
-			boolean result= Pattern.matches(values[ptr], str);
+			boolean result= Pattern.matches( str,values[ptr]);
 			return exp.like_or_not?result:!result;
 		}
 		putError("value of like exp is not a colum name.",-1);
@@ -1410,7 +1410,7 @@ public class Execute {
 		Integer x,y;
 		x=getIntValue(ov.v1,attrlist,values);
 		y=getIntValue(ov.v2,attrlist,values);
-		if(x==null||x==null)
+		if(x==null||y==null)
 			return null;
 		if(x==-1||y==-1)
 			return -1;
@@ -1486,7 +1486,7 @@ public class Execute {
 			return Double.valueOf(values[ptr]);
 		}else if(v instanceof ConstValueFloat)
 		{
-			return  ((ConstValueInt)v).value;
+			return  ((ConstValueFloat)v).value;
 		}else if(v instanceof OperValue)
 			return  getFloatOpValue((OperValue)v,attrlist,values);
 		 putError("unknow error.(in get float value)",-1);
@@ -1782,7 +1782,7 @@ public class Execute {
 			if(v1==v2)
 				return true; 
 		if(cop.equals("NEQ")) 
-			if(v1!=v2)
+			if(v1.doubleValue()!=v2.doubleValue())
 				return true; 
 		if(cop.equals("LE")) 
 			if(v1<=v2)
@@ -1904,7 +1904,8 @@ public class Execute {
 							{
 								String tmp;
 								tmp=((ConstValueString)constvalue).getValue();
-								result+=tmp;
+								
+								result+=tmp.length()>attr.type.size?tmp.substring(0, attr.type.size):tmp;
 							} 
 							result+=","; 
 						}
@@ -2097,9 +2098,9 @@ public class Execute {
 							break;
 					}
 
-					if (flag)
-						DBInfo.DbMani.write(env.database, i.tablename, result,
-								length, totallength + attrarray.size() + 1);
+					if (flag){
+						
+					}
 					else {
 						putError("value:" + result
 								+ "not inserted because of the check exp", -1);
@@ -2324,6 +2325,8 @@ public class Execute {
 				for(int i=0;i<backlist.size();i++){
 					if(backlist.get(i).name.equals(al.colname)){
 						ptr=i;
+						//check key fk;
+						
 					}
 					else{
 						attrlist=new AttrList(backlist.get(i),attrlist);

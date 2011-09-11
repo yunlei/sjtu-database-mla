@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.RandomAccessFile;
+import java.util.TreeMap;
 
 import Absyn.SelectExp;
 import Alge.AttrList;
@@ -20,10 +21,14 @@ import Symbol.Symbol;
  */
 public class DbMani {
 	static public  String rootpath="G:\\DB\\";
+	static int bufferused=0;
+	static int buffersize=100;
+	static String[] buffers=new String[buffersize];
+	static TreeMap bufferHash=new TreeMap();
 	public static boolean getDB(Symbol name)
 	{
 		try{
-			File file=new File(rootpath+"\\"+name);
+			File file=new File(rootpath+name);
 			return file.exists();
 		}
 		catch(Exception e)
@@ -218,6 +223,7 @@ public class DbMani {
 			 userlist=(UserList) ois.readObject();
 			 ois.close();
 			 }
+			
 			 if(userlist==null)
 				 userlist=new UserList();
 			 userlist.add(new UserInfo(name,pw));
@@ -430,7 +436,7 @@ public class DbMani {
 		return viewlist;
 	}
 	public static void putViewList(String db,ViewList vl){
-		File file=new File(rootpath+db+"\\index.list");
+		File file=new File(rootpath+db+"\\view.list");
 		
 		try {
 			if(!file.exists())

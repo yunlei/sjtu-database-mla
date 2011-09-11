@@ -188,6 +188,15 @@ public class Semant{
 				putError("table:"+aae.tablename.toString()+"not found(int database"+env.database+")",e.pos);
 				return null;
 			}
+			AttrList tmplist=attrlist;
+			while(tmplist!=null){
+				if(tmplist.attr.name!=null&&tmplist.attr.name.equals(aae.col.toString())){
+					putError("colum:"+aae.col.toString()+" has already been exists in table"+aae.tablename,-1);
+					return null;
+				}
+				tmplist=tmplist.next;
+			}
+			
 			Type type=null;
 			if(aae.type instanceof NameTy)
 			{
@@ -221,6 +230,9 @@ public class Semant{
 				Attr attr=attrlist.attr;
 				if(attr.name.equals(ade.col.toString()))
 				{
+					if(attr.key){
+						putError("colum:"+ade.col.toString()+" is a key for  table"+ade.tablename+",can not be deleted",-1);
+					}
 					return new Alter(Alter.DROP,ade.tablename.toString(),ade.col.toString());
 				}
 				attrlist=attrlist.next;
@@ -438,6 +450,10 @@ public class Semant{
 			if(select_expr.value instanceof ColValue)
 			{
 				ColName colname=((ColValue)select_expr.value).name;
+				if(s.groupclause!=null&&!colname.col.toString().equals("*")&&
+						!colname.col.toString().equals(s.groupclause.name.col.toString())){
+					throw new Exception("select exp can not exists if it doesnot exists int the group clause");
+				}
 				if(colname.col.toString().equals("*"))
 				{
 					//replace * with real col name;
@@ -479,6 +495,9 @@ public class Semant{
 		
 		if(s.groupclause!=null&&!colNameInCrossUnion(s.groupclause.name,(CrossJoin)table,s.pos))
 			return null;
+		if(s.groupclause!=null){
+			
+		}
 		//check having list;
 		if (s.havingclause != null) {
 			ColNameList colnamelist = getColNameList(s.havingclause.boolexp);
@@ -574,11 +593,24 @@ public class Semant{
 			putError("from table must be a table or a subquery",-1);
 			return null;
 		}
+		//check unique;
+		TableRefList tlt=tl;
+		while(tlt!=null){
+			TableRefList tltt=tlt.next;
+			while(tltt!=null){
+				if(tltt.tableref.name.toString().equals(tlt.tableref.name.toString())){
+					throw new Exception("table refered in the from caluse should be unique.");
+				}
+				tltt=tltt.next;
+			}
+			tlt=tlt.next;
+		}
 		if(tl.tableref.name!=null)
 		{
 			AttrList attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
+			AttrList attrlist1=null;
 			if(attrlist!=null){
-				r1=new RealRelation(tl.tableref.name.toString()); 
+				r1=new RealRelation(tl.tableref.name.toString());
 				AttrList orderlist=null,tmp=attrlist;
 				while(tmp!=null){
 					orderlist=new AttrList(tmp.attr,orderlist);
@@ -589,7 +621,7 @@ public class Semant{
 					throw new Exception("the user has no priority to insert table:"+tl.tableref.name);
 					 
 				}
-				r1.attrlist=DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
+				r1.attrlist=orderlist;//DBInfo.DbMani.getAttriList(env.database, tl.tableref.name.toString());
 				r1.results=DBInfo.DbMani.readFile(env.database, tl.tableref.name.toString());
 			}
 			else{//is a view

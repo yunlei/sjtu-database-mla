@@ -77,15 +77,19 @@ public class Execute {
 					||r1 instanceof Sigma
 					||r1 instanceof Gamma)
 			{
-				if(r1.results.equals(""))
-					throw new Exception("null result returned");
-				str2="TABLE";
-				AttrList attrlist=r1.attrlist;
-				while(attrlist!=null){
-					str2+=attrlist.attr.name+',';
-					attrlist=attrlist.next;
+				if(r1.results.equals("")){
+					str2="ERROR null result returned<SQL>";
+				}					
+				else{
+					str2="TABLE";
+					AttrList attrlist=r1.attrlist;
+					while(attrlist!=null){
+						str2+=attrlist.attr.name+',';
+						attrlist=attrlist.next;
+					}
+					str2+="<head>";
 				}
-				str2+="<head>";
+				
 				
 			}
 			str1=str2+r1.results;
@@ -355,13 +359,15 @@ public class Execute {
 	}
 	public Relation execute(RealRelation real)
 	{
-		AttrList attrlist=DBInfo.DbMani.getAttriList(env.database,real.tablename);
-		real.attrlist=null;
-		while(attrlist!=null)
-		{
-			if(attrlist.attr.check==null)
-				real.attrlist=new AttrList(attrlist.attr,real.attrlist);
-			attrlist=attrlist.next;
+		if(real.attrlist==null){
+			AttrList attrlist = DBInfo.DbMani.getAttriList(env.database,
+					real.tablename);
+			real.attrlist = null;
+			while (attrlist != null) {
+				if (attrlist.attr.check == null)
+					real.attrlist = new AttrList(attrlist.attr, real.attrlist);
+				attrlist = attrlist.next;
+			}
 		}
 		real.results=DBInfo.DbMani.readFile(env.database, real.tablename); 
 		return real;
@@ -424,18 +430,20 @@ public class Execute {
 		if(sigma.condition==null)
 			result=sigma.relation.results;
 		else {
-			String[] rows=sigma.relation.results.split(";");					
-			for(int i=0;i<rows.length;i++)
-			{
-				try{
-					if(sigma.condition==null||this.calBoolExp(sigma.condition.boolExp, list, rows[i].split(",")))
-					{
-						result+=rows[i]+";";
+			String[] rows=sigma.relation.results.split(";");	
+			try{
+				for (int i = 0; i < rows.length; i++) {
+
+					if (sigma.condition == null
+							|| this.calBoolExp(sigma.condition.boolExp, list,
+									rows[i].split(","))) {
+						result += rows[i] + ";";
 					}
+
 				}
-				catch(Exception e){
-					putError(e.getMessage(),-1);
-				}
+			}
+			catch(Exception e){
+				putError(e.getMessage(),-1);
 			}
 		}
 		sigma.attrlist=(AttrList) common.Op.copy(sigma.relation.attrlist);
@@ -504,16 +512,21 @@ public class Execute {
 			else if(select_expr.value instanceof FuncValue)
 			{
 				ColName colname=((FuncValue)select_expr.value).colname;
-				for(int i=0;i<attrlist1.size();i++)
+				if(colname.col.toString().equals("*"))				
 				{
-					if(colname.col.equals(attrlist1.get(i).name))
-					{
-						seq.add(i);
-						break;
-					}
+					seq.add(-2);
+					if(!((FuncValue)select_expr.value).functy.toString().equalsIgnoreCase("count"))
+						throw new Exception("function should be only \"count\" when the value is \"*\"");
 				}
+				else
+					for (int i = 0; i < attrlist1.size(); i++) {
+						if (colname.col.equals(attrlist1.get(i).name)) {
+							seq.add(i);
+							break;
+						}
+					}
 				tmpAttr=new Attr(this.transFunc(((FuncValue)select_expr.value).functy,
-						colname),attrlist1.get(seq.get(seq.size()-1)).type,false,null,false,false); 
+						colname),new Type(Type.INT),false,null,false,false); 
 				
 			}			
 			else if( select_expr.value instanceof OperValue){
@@ -575,16 +588,28 @@ public class Execute {
 							obs.add(((ConstValue)select_expr.value).getValue());
 						else if (select_expr.value instanceof FuncValue)
 						{
-							obs.add(cols[seq.get(j)]);
-							if(attrlist1.get(seq.get(j)).type.type!=Type.INT)
-							{
-								throw(new Exception("func value:"+((FuncValue)select_expr.value).functy.toString()+" should be a integer"));
-							}
-							if(!cols[seq.get(j)].equalsIgnoreCase("null")){
-								agrlist.add(Integer.valueOf(cols[seq.get(j)]));
-								agrlist.add(Integer.valueOf(cols[seq.get(j)]));
-								agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+							ColName colname1=((FuncValue)select_expr.value).colname;
+							if(colname1.col.toString().equals("*")){
+								agrlist.add(-1);
+								agrlist.add(-1);
+								agrlist.add(-1);
 								agrlist.add(1);
+							}
+							else {
+								obs.add(cols[seq.get(j)]);
+								if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
+									throw (new Exception(
+											"func value:"
+													+ ((FuncValue) select_expr.value).functy
+															.toString()
+													+ " should be a integer"));
+								}
+								if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
+									agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+									agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+									agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+									agrlist.add(1);
+								}
 							}
 						}
 						else if(select_expr.value instanceof OperValue){
@@ -598,8 +623,9 @@ public class Execute {
 					aggre.put(cols[group_seq], agrlist);
 				}
 				else{
+					agrlist=aggre.get(cols[group_seq]);
 					for(int j=0;j<seq.size();j++,select_expr=select_expr.next)
-					{
+					{ 
 						if(select_expr.value instanceof ColValue)
 						{
 							if(((ColValue)select_expr.value).name.col.toString().equals("*")){
@@ -614,20 +640,30 @@ public class Execute {
 							obs.add(((ConstValue)select_expr.value).getValue());
 						else if (select_expr.value instanceof FuncValue)
 						{
-							obs.add(cols[seq.get(j)]);
-							if(attrlist1.get(seq.get(j)).type.type!=Type.INT)
-							{
-								throw(new Exception("func value:"+((FuncValue)select_expr.value).functy.toString()+" should be a integer"));
-							}
-							if(!cols[seq.get(j)].equalsIgnoreCase("null")){
-								Integer tmp=Integer.valueOf(cols[seq.get(j)]);
-								agrlist=aggre.get(cols[group_seq]);
-								agrlist.set(0, tmp+agrlist.get(0));
-								if(tmp<agrlist.get(1))
-									agrlist.set(1, tmp);
-								if(tmp>agrlist.get(2))
-									agrlist.set(2, tmp);
+							ColName colname1=((FuncValue)select_expr.value).colname;
+							if(colname1.col.toString().equals("*")){ 																 							
 								agrlist.set(3, agrlist.get(3)+1);//sum,min,max,count
+							}
+							else {
+								obs.add(cols[seq.get(j)]);
+								if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
+									throw (new Exception(
+											"func value:"
+													+ ((FuncValue) select_expr.value).functy
+															.toString()
+													+ " should be a integer"));
+								}
+								if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
+									Integer tmp = Integer.valueOf(cols[seq
+											.get(j)]);
+									agrlist = aggre.get(cols[group_seq]);
+									agrlist.set(0, tmp + agrlist.get(0));
+									if (tmp < agrlist.get(1))
+										agrlist.set(1, tmp);
+									if (tmp > agrlist.get(2))
+										agrlist.set(2, tmp);
+									agrlist.set(3, agrlist.get(3) + 1);// sum,min,max,count
+								}
 							}
 						}
 						else if(select_expr.value instanceof OperValue){
@@ -707,7 +743,7 @@ public class Execute {
 			project.attrlist=outlist;
 			return project;
 		}
-		else
+		else  //group==null
 		{
 			String result1="";
 			Integer max,min,sum,count;
@@ -724,7 +760,7 @@ public class Execute {
 			select_expr=project.select_expr;
 			while(hasAgg&&select_expr!=null){
 				 Value v=select_expr.value;
-				 if(v instanceof ColValue)
+				if(v instanceof ColValue)
 				{
 					 throw new Exception("col name:"+((ColValue)v).name.toString()+
 						" is not inside  a group clause or indide a aggregate function");
@@ -761,18 +797,27 @@ public class Execute {
 					}
 					else if(select_expr.value instanceof FuncValue){//max,min
 						//throw new Exception("funct value not implemented yet");
-						if(attrlist1.get(seq.get(j)).type.type!=Type.INT)
-						{
-							throw(new Exception("func value:"+((FuncValue)select_expr.value).functy.toString()+" should be a integer"));
-						}
-						if(!cols[seq.get(j)].equalsIgnoreCase("null")){
-							Integer tmp=Integer.valueOf(cols[seq.get(j)]);
-							sumarr[j]+=tmp;
+						ColName colname1=((FuncValue)select_expr.value).colname;
+						if(colname1.col.toString().equals("*")){
 							countarr[j]++;
-							if(maxarr[j]==-1||(tmp>maxarr[j]))
-								maxarr[j]=tmp;
-							if(minarr[j]==-1||(tmp<minarr[j]))
-								minarr[j]=tmp; 
+						}
+						else {
+							if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
+								throw (new Exception(
+										"func value:"
+												+ ((FuncValue) select_expr.value).functy
+														.toString()
+												+ " should be a integer"));
+							}
+							if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
+								Integer tmp = Integer.valueOf(cols[seq.get(j)]);
+								sumarr[j] += tmp;
+								countarr[j]++;
+								if (maxarr[j] == -1 || (tmp > maxarr[j]))
+									maxarr[j] = tmp;
+								if (minarr[j] == -1 || (tmp < minarr[j]))
+									minarr[j] = tmp;
+							}
 						}
 					}
 					else if(select_expr.value instanceof OperValue){
@@ -1065,7 +1110,7 @@ public class Execute {
 				String []cols=rows[i].split(",");
 				if(cols.length!=1)
 				{
-					putError("subquery of ((not)in exp) sholud return only on",-1);
+					putError("subquery of ((not)in exp) sholud return only one colunm",-1);
 					return false;
 				}
 				if(vi==Integer.valueOf(cols[0]))
@@ -2374,13 +2419,14 @@ public class Execute {
 					result+=";";
 				}
 			}
+			al.results="alter table :"+rows.length+" rows been affacted.";
 			DBInfo.DbMani.delteFile(env.database,al.tablename);
 			DBInfo.DbMani.write(env.database,al.tablename, result, 0, result.length());
 		}catch(Exception e)
 		{
 			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);			
 		}
-		al.results="";
+		
 		return al;		
 	}
 	public Relation execute(CreateIndex ci)

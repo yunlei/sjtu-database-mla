@@ -120,6 +120,7 @@ public class ServerDriver extends Thread{
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
+					break;
 				}
 			}
 		}

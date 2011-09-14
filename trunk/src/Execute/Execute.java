@@ -512,21 +512,25 @@ public class Execute {
 			else if(select_expr.value instanceof FuncValue)
 			{
 				ColName colname=((FuncValue)select_expr.value).colname;
+				Type  type=null;
 				if(colname.col.toString().equals("*"))				
 				{
 					seq.add(-2);
 					if(!((FuncValue)select_expr.value).functy.toString().equalsIgnoreCase("count"))
 						throw new Exception("function should be only \"count\" when the value is \"*\"");
+					type=new Type(Type.INT);
 				}
-				else
+				else {
 					for (int i = 0; i < attrlist1.size(); i++) {
 						if (colname.col.equals(attrlist1.get(i).name)) {
-							seq.add(i);
+							seq.add(i);type=attrlist1.get(i).type;
 							break;
 						}
 					}
+					 
+				}
 				tmpAttr=new Attr(this.transFunc(((FuncValue)select_expr.value).functy,
-						colname),new Type(Type.INT),false,null,false,false); 
+						colname),type,false,null,false,false); 
 				
 			}			
 			else if( select_expr.value instanceof OperValue){
@@ -589,6 +593,7 @@ public class Execute {
 						else if (select_expr.value instanceof FuncValue)
 						{
 							ColName colname1=((FuncValue)select_expr.value).colname;
+							Symbol functy=((FuncValue)select_expr.value).functy;
 							if(colname1.col.toString().equals("*")){
 								agrlist.add(-1);
 								agrlist.add(-1);
@@ -597,18 +602,28 @@ public class Execute {
 							}
 							else {
 								obs.add(cols[seq.get(j)]);
-								if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
-									throw (new Exception(
-											"func value:"
-													+ ((FuncValue) select_expr.value).functy
-															.toString()
-													+ " should be a integer"));
-								}
-								if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
-									agrlist.add(Integer.valueOf(cols[seq.get(j)]));
-									agrlist.add(Integer.valueOf(cols[seq.get(j)]));
-									agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+								if(functy.toString().equalsIgnoreCase("count"))
+								{
+									agrlist.add(-1);
+									agrlist.add(-1);
+									agrlist.add(-1);
 									agrlist.add(1);
+									
+								}
+								else {
+									if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
+										throw (new Exception(
+												"func value:"
+														+ ((FuncValue) select_expr.value).functy
+																.toString()
+														+ " should be a integer"));
+									}
+									if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
+										agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+										agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+										agrlist.add(Integer.valueOf(cols[seq.get(j)]));
+										agrlist.add(1);
+									}
 								}
 							}
 						}
@@ -646,23 +661,29 @@ public class Execute {
 							}
 							else {
 								obs.add(cols[seq.get(j)]);
-								if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
-									throw (new Exception(
-											"func value:"
-													+ ((FuncValue) select_expr.value).functy
-															.toString()
-													+ " should be a integer"));
-								}
-								if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
-									Integer tmp = Integer.valueOf(cols[seq
-											.get(j)]);
-									agrlist = aggre.get(cols[group_seq]);
-									agrlist.set(0, tmp + agrlist.get(0));
-									if (tmp < agrlist.get(1))
-										agrlist.set(1, tmp);
-									if (tmp > agrlist.get(2))
-										agrlist.set(2, tmp);
+								Symbol functy=((FuncValue)select_expr.value).functy;
+								if(functy.toString().equalsIgnoreCase("count"))
 									agrlist.set(3, agrlist.get(3) + 1);// sum,min,max,count
+								else {
+									if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
+										throw (new Exception(
+												"func value:"
+														+ ((FuncValue) select_expr.value).functy
+																.toString()
+														+ " should be a integer"));
+									}
+									if (!cols[seq.get(j)]
+											.equalsIgnoreCase("null")) {
+										Integer tmp = Integer.valueOf(cols[seq
+												.get(j)]);
+										agrlist = aggre.get(cols[group_seq]);
+										agrlist.set(0, tmp + agrlist.get(0));
+										if (tmp < agrlist.get(1))
+											agrlist.set(1, tmp);
+										if (tmp > agrlist.get(2))
+											agrlist.set(2, tmp);
+										agrlist.set(3, agrlist.get(3) + 1);// sum,min,max,count
+									}
 								}
 							}
 						}
@@ -802,21 +823,28 @@ public class Execute {
 							countarr[j]++;
 						}
 						else {
-							if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
-								throw (new Exception(
-										"func value:"
-												+ ((FuncValue) select_expr.value).functy
-														.toString()
-												+ " should be a integer"));
-							}
-							if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
-								Integer tmp = Integer.valueOf(cols[seq.get(j)]);
-								sumarr[j] += tmp;
+							Symbol functy=((FuncValue)select_expr.value).functy;
+							if(functy.toString().equalsIgnoreCase("count")){
 								countarr[j]++;
-								if (maxarr[j] == -1 || (tmp > maxarr[j]))
-									maxarr[j] = tmp;
-								if (minarr[j] == -1 || (tmp < minarr[j]))
-									minarr[j] = tmp;
+							}
+							else {
+								if (attrlist1.get(seq.get(j)).type.type != Type.INT) {
+									throw (new Exception(
+											"func value:"
+													+ ((FuncValue) select_expr.value).functy
+															.toString()
+													+ " should be a integer"));
+								}
+								if (!cols[seq.get(j)].equalsIgnoreCase("null")) {
+									Integer tmp = Integer.valueOf(cols[seq
+											.get(j)]);
+									sumarr[j] += tmp;
+									countarr[j]++;
+									if (maxarr[j] == -1 || (tmp > maxarr[j]))
+										maxarr[j] = tmp;
+									if (minarr[j] == -1 || (tmp < minarr[j]))
+										minarr[j] = tmp;
+								}
 							}
 						}
 					}

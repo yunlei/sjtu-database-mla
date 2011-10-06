@@ -62,7 +62,7 @@ public class ServerDriver extends Thread{
 		String database;
 		BufferedReader in;
 		DataOutputStream out;
-		
+		Running.database db;
 		ServerThread(Socket socket) throws IOException{
 			user = "no user";
 			s = socket;
@@ -94,6 +94,7 @@ public class ServerDriver extends Thread{
 								send("no");
 								continue;
 							}
+							db=new Running.database(user,database);
 							send("yes");
 						}
 						else if(command.startsWith("register")){
@@ -111,7 +112,7 @@ public class ServerDriver extends Thread{
 						}
 						else{
 							//
-							String result=Running.database.runing(command,this.database,this.user);
+							String result=db.runing(command );
 							send(result);
 							//send("yes");
 						}

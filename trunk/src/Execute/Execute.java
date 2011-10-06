@@ -60,6 +60,9 @@ public class Execute {
 		}
 		System.out.print("*********************ERROR*END******************\n");
 	}
+	private int getLineNbr(Exception e){
+		return e.getStackTrace()[0].getLineNumber();
+	}
 	public String execute(RelaList list) throws Exception
 	{
 		if(list==null)
@@ -170,11 +173,12 @@ public class Execute {
 		
 		catch(Exception e)
 		{
-			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),this.getLineNbr(new Exception()));
 			if(e instanceof NullPointerException){
 				e.printStackTrace();
 			} 
 		}
+		
 		return null;		
 	}
 	public Relation execute(Grant g){
@@ -189,10 +193,10 @@ public class Execute {
 			int priority =DBInfo.DbMani.getPrio(env.user, table);
 			 
 			if(priority==0){
-				putError("user:"+env.user+" has no priority to table:"+table,-1);				
+				putError("user:"+env.user+" has no priority to table:"+table,this.getLineNbr(new Exception()));				
 			}
 			else if(!DBInfo.DbMani.CheckPrio(table, env.user, DBInfo.UserPrio.GRANT)){
-				putError("user:"+env.user+" has no grant priority for table:"+table,-1);
+				putError("user:"+env.user+" has no grant priority for table:"+table,this.getLineNbr(new Exception()));
 			}
 			else{
 				priority&=g.priority;
@@ -443,7 +447,7 @@ public class Execute {
 				}
 			}
 			catch(Exception e){
-				putError(e.getMessage(),-1);
+				putError(e.getMessage(),this.getLineNbr(new Exception()));
 			}
 		}
 		sigma.attrlist=(AttrList) common.Op.copy(sigma.relation.attrlist);
@@ -594,6 +598,7 @@ public class Execute {
 						{
 							ColName colname1=((FuncValue)select_expr.value).colname;
 							Symbol functy=((FuncValue)select_expr.value).functy;
+							obs.add(cols[group_seq]);
 							if(colname1.col.toString().equals("*")){
 								agrlist.add(-1);
 								agrlist.add(-1);
@@ -601,7 +606,7 @@ public class Execute {
 								agrlist.add(1);
 							}
 							else {
-								obs.add(cols[seq.get(j)]);
+								
 								if(functy.toString().equalsIgnoreCase("count"))
 								{
 									agrlist.add(-1);
@@ -656,11 +661,12 @@ public class Execute {
 						else if (select_expr.value instanceof FuncValue)
 						{
 							ColName colname1=((FuncValue)select_expr.value).colname;
+							obs.add(cols[group_seq]);
 							if(colname1.col.toString().equals("*")){ 																 							
 								agrlist.set(3, agrlist.get(3)+1);//sum,min,max,count
 							}
 							else {
-								obs.add(cols[seq.get(j)]);
+								
 								Symbol functy=((FuncValue)select_expr.value).functy;
 								if(functy.toString().equalsIgnoreCase("count"))
 									agrlist.set(3, agrlist.get(3) + 1);// sum,min,max,count
@@ -1016,7 +1022,7 @@ public class Execute {
 							flag=true;
 						}
 						else{
-							putError("row:"+rows[i]+"can not be deleted.(key value:"+list.get(keypos).name+"("+cols[keypos]+") is referenced as a foreign key.",-1);
+							putError("row:"+rows[i]+"can not be deleted.(key value:"+list.get(keypos).name+"("+cols[keypos]+") is referenced as a foreign key.",this.getLineNbr(new Exception()));
 						}				
 					}
 					if(fkpos!=-1){
@@ -1024,7 +1030,7 @@ public class Execute {
 						if(!flag){
 							putError("row:"+rows[i]+"can not be deleted.(fk key value:"+list.get(fkpos).name
 									+"("+cols[fkpos]+") is a fk. " +
-											"this may be caused by that fk not exisits, or only referencd once.",-1);
+											"this may be caused by that fk not exisits, or only referencd once.",this.getLineNbr(new Exception()));
 						}
 					}
 				}
@@ -1042,7 +1048,7 @@ public class Execute {
 		}
 		catch(Exception e)
 		{
-			if(e instanceof NullPointerException) e.printStackTrace();if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),this.getLineNbr(new Exception()));
 			//e.printStackTrace();
 			d.results="error";
 			return d;
@@ -1096,13 +1102,13 @@ public class Execute {
 				}
 			}
 			if(attrlist.get(ptr).type.type!=Type.CHAR){
-				putError("type of "+colname.toString()+" is not string ("+this.transType(attrlist.get(ptr).type)+").",-1);
+				putError("type of "+colname.toString()+" is not string ("+this.transType(attrlist.get(ptr).type)+").",this.getLineNbr(new Exception()));
 				return false;
 			}
 			boolean result= Pattern.matches( str,values[ptr]);
 			return exp.like_or_not?result:!result;
 		}
-		putError("value of like exp is not a colum name.",-1);
+		putError("value of like exp is not a colum name.",this.getLineNbr(new Exception()));
 		return false;
 	}
 	public String transType(Type type){
@@ -1138,7 +1144,7 @@ public class Execute {
 				String []cols=rows[i].split(",");
 				if(cols.length!=1)
 				{
-					putError("subquery of ((not)in exp) sholud return only one colunm",-1);
+					putError("subquery of ((not)in exp) sholud return only one colunm",this.getLineNbr(new Exception()));
 					return false;
 				}
 				if(vi==Integer.valueOf(cols[0]))
@@ -1189,7 +1195,7 @@ public class Execute {
 			}
 			if(ptr1==-1||ptr2==-1)
 			{
-				putError("col value:"+cv1.name.toString()+" not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",this.getLineNbr(new Exception()));
 				return false;
 			}
 			if(attr1.type.type==Type.INT&&attr2.type.type==Type.INT)
@@ -1204,7 +1210,7 @@ public class Execute {
 				return this.valueComp(Double.valueOf(values[ptr1]), compexp.comp, Double.valueOf(values[ptr2]));
 			}				
 			else {
-				putError("col value type not compatible:"+attr1.type.type+" vs "+attr2.type.type,-1);
+				putError("col value type not compatible:"+attr1.type.type+" vs "+attr2.type.type,this.getLineNbr(new Exception()));
 				return false;
 			} 
 		}
@@ -1224,12 +1230,12 @@ public class Execute {
 			}
 			if(ptr1==-1 )
 			{
-				putError("col value:"+cv1.name.toString()+" not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",this.getLineNbr(new Exception()));
 				return false;
 			}
 			if(attr1.type.type!=Type.FLOAT)
 			{
-				putError("col value:"+compexp.v2.toString()+" not a float (const value is a float num).",-1);
+				putError("col value:"+compexp.v2.toString()+" not a float (const value is a float num).",this.getLineNbr(new Exception()));
 				return false;
 			}
 			return this.valueComp(Double.valueOf(values[ptr1]), compexp.comp, ((ConstValueFloat)compexp.v2).value);
@@ -1255,12 +1261,12 @@ public class Execute {
 			}
 			if(ptr1==-1 )
 			{
-				putError("col value:"+cv1.name.toString()+" not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",this.getLineNbr(new Exception()));
 				return false;
 			}
 			if(attr1.type.type!=Type.INT)
 			{
-				putError("col value not a int (const value is a int num).",-1);
+				putError("col value not a int (const value is a int num).",this.getLineNbr(new Exception()));
 				return false;
 			}
 			return this.valueComp(Integer.valueOf(values[ptr1]), compexp.comp, ((ConstValueInt)compexp.v2).value);
@@ -1286,12 +1292,12 @@ public class Execute {
 			}
 			if(ptr1==-1 )
 			{
-				putError("col value:"+cv1.name.toString()+" not found",-1);
+				putError("col value:"+cv1.name.toString()+" not found",this.getLineNbr(new Exception()));
 				return false;
 			}
 			if(attr1.type.type!=Type.CHAR)
 			{
-				putError("col value not a string (const value is a sring num).",-1);
+				putError("col value not a string (const value is a sring num).",this.getLineNbr(new Exception()));
 				return false;
 			}
 			return this.valueComp(values[ptr1], compexp.comp, ((ConstValueString)compexp.v2).value);
@@ -1312,7 +1318,7 @@ public class Execute {
 		{
 			  return this.valueComp(vi1,compexp.comp, vi2);
 		}
-		putError("unknown problem.",-1);
+		putError("unknown problem.",this.getLineNbr(new Exception()));
 		return false;	
 	}
 	public boolean calBoolExp(BoolExsitExp boolexsitexp,List<Attr> attrlist,String [] values) throws Exception
@@ -1361,7 +1367,7 @@ public class Execute {
 				return this.transTypeToConstValue(attr.type, values[i]);
 			}
 		}
-		//putError("col value not found.",-1);
+		//putError("col value not found.",this.getLineNbr(new Exception()));
 		return null;
 	}
 	public ConstValue transTypeToConstValue(Type type,String value){
@@ -1390,7 +1396,7 @@ public class Execute {
 		//attrlist and values have the same numbers of value;
 //		if(!(allexp.value instanceof ConstValueInt))
 //		{
-//			putError("all exp should be a int value.",-1);
+//			putError("all exp should be a int value.",this.getLineNbr(new Exception()));
 //			return false;
 //		} 
 		Semant semant=new Semant(env);
@@ -1406,7 +1412,7 @@ public class Execute {
 			String[] cols=row.split(",");
 			if(cols.length!=1)
 			{
-				putError(" Operand (subquery in All ) should contain 1 column(s)",-1);
+				putError(" Operand (subquery in All ) should contain 1 column(s)",this.getLineNbr(new Exception()));
 				return false;
 			}
 			if(allexp.value instanceof ConstValueInt)//(attrlist.get(0).type.type==Type.INT)
@@ -1432,7 +1438,7 @@ public class Execute {
 				}
 				if(ptr==-1)
 				{
-					putError("colname:"+colname.col.toString()+" not found",-1);
+					putError("colname:"+colname.col.toString()+" not found",this.getLineNbr(new Exception()));
 					return false;
 				}
 				//values[j];
@@ -1452,7 +1458,7 @@ public class Execute {
 				OperValue ov=(OperValue)allexp.value;
 				if(!((ov.v1 instanceof ConstValueInt)&&(ov.v2 instanceof ConstValueInt)))
 				{
-					putError("op value should be int value",-1);
+					putError("op value should be int value",this.getLineNbr(new Exception()));
 					return false;
 				}
 				int v10=((ConstValueInt)ov.v1).value;
@@ -1510,12 +1516,12 @@ public class Execute {
 			}
 			if(ptr==-1)
 			{
-				putError("colname:"+colname.col.toString()+" not found",-1);
+				putError("colname:"+colname.col.toString()+" not found",this.getLineNbr(new Exception()));
 				return null;
 			}
 			return values[ptr];
 		}
-		putError("string value not found.",-1);
+		putError("string value not found.",this.getLineNbr(new Exception()));
 		return null;		
 	}
 	public double getFloatValue(Value v,List<Attr> attrlist,String [] values)
@@ -1548,12 +1554,12 @@ public class Execute {
 			}
 			if(ptr==-1)
 			{
-				putError("colname:"+colname.col.toString()+" not found",-1);
+				putError("colname:"+colname.col.toString()+" not found",this.getLineNbr(new Exception()));
 				return -1;
 			}
 			if(attr.type.type!=Type.INT)
 			{
-				putError("value is not a integer",-1);
+				putError("value is not a integer",this.getLineNbr(new Exception()));
 				return -1;
 			}
 			return Double.valueOf(values[ptr]);
@@ -1562,7 +1568,7 @@ public class Execute {
 			return  ((ConstValueFloat)v).value;
 		}else if(v instanceof OperValue)
 			return  getFloatOpValue((OperValue)v,attrlist,values);
-		 putError("unknow error.(in get float value)",-1);
+		 putError("unknow error.(in get float value)",this.getLineNbr(new Exception()));
 		 return -1;
 	}
 	public Integer getIntValue(Value v,List<Attr> attrlist,String [] values) throws Exception
@@ -1595,12 +1601,12 @@ public class Execute {
 			}
 			if(ptr==-1)
 			{
-				putError("colname:"+colname.col.toString()+" not found",-1);
+				putError("colname:"+colname.col.toString()+" not found",this.getLineNbr(new Exception()));
 				return -1;
 			}
 			if(attr.type.type!=Type.INT)
 			{
-				putError("value is not a integer",-1);
+				putError("value is not a integer",this.getLineNbr(new Exception()));
 				return -1;
 			}
 			if(values[ptr].equals("null"))
@@ -1627,7 +1633,7 @@ public class Execute {
 				throw new Exception("subquery around comparing operations(=,!=,>,< ...) are not alowed to return more than onn column.");
 			return Integer.valueOf(cols[0]);
 		}
-		 putError("unknow error.(in get int value)",-1);
+		 putError("unknow error.(in get int value)",this.getLineNbr(new Exception()));
 		 return -1;
 	}
 	public double calFloatOpvalue(double v1,String op,double v2)
@@ -1663,7 +1669,7 @@ public class Execute {
 		//attrlist and values have the same numbers of value;
 //		if(!(anyexp.value instanceof ConstValueInt))
 //		{
-//			putError("any exp should be a int value.",-1);
+//			putError("any exp should be a int value.",this.getLineNbr(new Exception()));
 //			return false;
 //		} 
 		Semant semant=new Semant(env);
@@ -1679,7 +1685,7 @@ public class Execute {
 			String[] cols=row.split(",");
 			if(cols.length!=1)
 			{
-				putError(" Operand (subquery in All ) should contain 1 column(s)",-1);
+				putError(" Operand (subquery in All ) should contain 1 column(s)",this.getLineNbr(new Exception()));
 				return false;
 			}
 			if(anyexp.value instanceof ConstValueInt)//(attrlist.get(0).type.type==Type.INT)
@@ -1705,7 +1711,7 @@ public class Execute {
 				}
 				if(ptr==-1)
 				{
-					putError("colname:"+colname.col.toString()+" not found",-1);
+					putError("colname:"+colname.col.toString()+" not found",this.getLineNbr(new Exception()));
 					return false;
 				}
 				//values[j];
@@ -1725,7 +1731,7 @@ public class Execute {
 				OperValue ov=(OperValue)anyexp.value;
 				if(!((ov.v1 instanceof ConstValueInt)&&(ov.v2 instanceof ConstValueInt)))
 				{
-					putError("op value should be int value",-1);
+					putError("op value should be int value",this.getLineNbr(new Exception()));
 					return false;
 				}
 				int v10=((ConstValueInt)ov.v1).value;
@@ -1960,7 +1966,7 @@ public class Execute {
 				if(!flag)
 				{
 					if(mmm==keypos){
-						putError("key value should not be empty",-1);
+						putError("key value should not be empty",this.getLineNbr(new Exception()));
 						return null;
 					}
 					seq.add(-1);
@@ -1983,7 +1989,7 @@ public class Execute {
 							result+=","; 
 						}
 						else if(attr.not_null){
-							putError("insert value:"+attr.name+" should not be null",-1);
+							putError("insert value:"+attr.name+" should not be null",this.getLineNbr(new Exception()));
 							return null;
 						}
 						else
@@ -2006,7 +2012,7 @@ public class Execute {
 						//key 的检查推迟到后边插入时
 //						if(keypos==mmm){
 //							if(keyindex.hasKey((constvalue).getValue())){
-//								putError("key value:"+attrarray.get(mmm).name+"("+(constvalue).getValue()+") should be unique",-1);
+//								putError("key value:"+attrarray.get(mmm).name+"("+(constvalue).getValue()+") should be unique",this.getLineNbr(new Exception()));
 //								return null;
 //							}
 //							else
@@ -2054,7 +2060,7 @@ public class Execute {
 						if(seq.get(s)==-1)//use default
 						{
 							if(keypos==s){
-								putError("key value should not be empty",-1);
+								putError("key value should not be empty",this.getLineNbr(new Exception()));
 								return null;
 							}
 							Attr attr=attrarray.get(attrarray.size()-1-s);
@@ -2081,7 +2087,7 @@ public class Execute {
 									result+=((ConstValueFloat)constvalue).getValue();
 							 }
 							 else if(attr.not_null){
-									putError("insert value:"+attr.name+" shouldnot be null",-1);
+									putError("insert value:"+attr.name+" shouldnot be null",this.getLineNbr(new Exception()));
 									return null;
 								}
 								else
@@ -2091,7 +2097,7 @@ public class Execute {
 						else{
 							if(keypos==s){
 								if(keyindex.hasKey(cols[seq.get(s)])){
-									putError("key value should be unique",-1);
+									putError("key value should be unique",this.getLineNbr(new Exception()));
 									return null;
 								}
 								else
@@ -2127,7 +2133,7 @@ public class Execute {
 						if(flag)
 							result+=nrows[rown]+";";
 						else {
-							putError("value:"+nrows[rown]+"not inserted because of the check exp",-1);
+							putError("value:"+nrows[rown]+"not inserted because of the check exp",this.getLineNbr(new Exception()));
 						}
 						if(keypos!=-1){
 							
@@ -2144,7 +2150,7 @@ public class Execute {
 						if(fkpos!=-1){
 							flag=this.addFK(cols[fkpos],fr );
 							if(!flag){
-								putError("error in adding:"+nrows[rown]+" foreign is not exist.",-1);
+								putError("error in adding:"+nrows[rown]+" foreign is not exist.",this.getLineNbr(new Exception()));
 								return null;
 							}
 						}
@@ -2329,14 +2335,14 @@ public class Execute {
 						if(fkpos==j){
 							//not implemented;
 							if(!FKindex.hasKey(constlist.get(j).getValue().toString())){
-								putError("invalide value("+constlist.get(j).getValue().toString()+") for fk:"+fk.toString(),-1);
+								putError("invalide value("+constlist.get(j).getValue().toString()+") for fk:"+fk.toString(),this.getLineNbr(new Exception()));
 								flag=false;
 								break;
 							}
 							flag=this.deleteFK(cols[seq.get(j)], fk);
 							if(!flag)
 							{
-								putError("valide value("+cols[seq.get(j)]+")can not be deleted  for fk:"+fk.toString(),-1);
+								putError("valide value("+cols[seq.get(j)]+")can not be deleted  for fk:"+fk.toString(),this.getLineNbr(new Exception()));
 								break;
 							}
 							this.addFK(constlist.get(j).getValue().toString(), fk);							
@@ -2365,7 +2371,7 @@ public class Execute {
 			DBInfo.DbMani.write(env.database,u.tablename, finalresult, 0, finalresult.length());
 		}catch(Exception e)
 		{
-			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),this.getLineNbr(new Exception()));
 		}
 		
 		return u;	
@@ -2452,7 +2458,7 @@ public class Execute {
 			DBInfo.DbMani.write(env.database,al.tablename, result, 0, result.length());
 		}catch(Exception e)
 		{
-			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);			
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),this.getLineNbr(new Exception()));			
 		}
 		
 		return al;		
@@ -2481,7 +2487,7 @@ public class Execute {
 			tmplist=tmplist.next;
 		}
 		if(ptr==-1){
-			putError("col name"+ci.col_name+" for index not found",-1);
+			putError("col name"+ci.col_name+" for index not found",this.getLineNbr(new Exception()));
 			return null;
 		}
 		ptr=rows[0].split(",").length-1-ptr; 
@@ -2541,7 +2547,7 @@ public class Execute {
 		}
 		catch(Exception e)
 		{
-			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),this.getLineNbr(new Exception()));
 			ct.results="error";
 			return ct;
 		}
@@ -2573,7 +2579,7 @@ public class Execute {
 			oos.close();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
-			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),-1);
+			if(e instanceof NullPointerException) e.printStackTrace();putError(e.getMessage(),this.getLineNbr(new Exception()));
 			cv.results="";
 			return cv;	
 		}
@@ -2585,7 +2591,7 @@ public class Execute {
 	{
 		if(env.database==null||env.database.equals(""))
 		{	
-			putError("database not selected",-1);
+			putError("database not selected",this.getLineNbr(new Exception()));
 			return false;
 		}
 		return true; 

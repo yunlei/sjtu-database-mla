@@ -24,7 +24,27 @@ public class DbMani {
 	static int bufferused=0;
 	static int buffersize=100;
 	static String[] buffers=new String[buffersize];
-	static TreeMap bufferHash=new TreeMap();
+	static TreeMap bufferHash=new TreeMap(); 
+	public static void system_init(String rp) throws Exception{
+		rootpath=rp;
+		system_init();
+	}
+	public static void setRootpath(String rp){
+		rootpath=rp;
+	}
+	public static void system_init() throws Exception
+	{
+		File file=new File(rootpath);
+		if(!file.exists())
+		{
+			if(!file.mkdir())
+				throw new Exception("system init error . the root path"+rootpath+" does not exist.");
+		}
+		file=new File(rootpath+"system");
+		if(!file.exists()&&!file.mkdir())
+			throw new Exception("system init error. system info dir can not be create, please make sure that the rootpath is writable.");
+		
+	}
 	public static boolean getDB(Symbol name)
 	{
 		try{

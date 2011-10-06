@@ -23,13 +23,24 @@ import Parse.*;
 public class database {
 	public String username;
 	public String database;
-	
+	private Env env;
 	public database(String username, String database) {
 		this.username = username;
 		this.database = database;
+		env=new Env(username,database);
 	}
-	 
-	public static  String  runing(String  inputStr,String db,String username) throws IOException
+	public database(String username){
+		this.username = username;
+		this.database = null;
+		env=new Env(username,database);		
+	}
+	public void init() throws Exception{
+		DBInfo.DbMani.system_init(); 
+	}
+	public void setRootpath(String rp){
+		DBInfo.DbMani.setRootpath(rp);
+	}
+	public   String  runing(String  inputStr) throws IOException
 	{
 		String userresult="";
 		try {
@@ -42,9 +53,6 @@ public class database {
 			//DBInfo.DbMani.addUser("admin", "admin");
 			Exp result=(Exp) parser.parse().value; 
 		//	print.printExp(result);
-			Env env=new Env(username,db);
-			
-			
 			SQLList sqlList=(SQLList)result;
 			//List<ErrorList> errorlist=new ArrayList<ErrorList>();
 			while(sqlList!=null){
@@ -64,7 +72,7 @@ public class database {
 						if(exe.hasError())
 						{
 							exe.printError();
-							//errorlist.add(exe.getErrorlist());
+							 
 							userresult+=exe.getErrorlist().toString();
 						}
 						else {
